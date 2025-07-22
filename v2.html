@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enhanced Overtime Calculator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 700px;
+            margin: 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 {
+            color: #4a5568;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+        h2 {
+            color: #2d3748;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+        .settings-section {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 1px solid #e2e8f0;
+        }
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .input-field {
+            flex: 1;
+            min-width: 150px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9em;
+        }
+        input[type="number"], input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        input[type="number"]:focus, input[type="text"]:focus, input[type="date"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .calculated-rate {
+            background-color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2d3748;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px; /* To align with input fields */
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+            min-width: 140px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border-radius: 10px;
+            font-size: 1.1em;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+        .result h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
+            color: white;
+        }
+        .breakdown {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .breakdown-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .rate-info {
+            background: #e6fffa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #38b2ac;
+            color: #2c7a7b;
+        }
+        .history {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .history-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+            font-size: 0.9em;
+        }
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .preset-btn {
+            background: #4299e1;
+            font-size: 14px;
+            padding: 8px 15px;
+            min-width: auto;
+        }
+        .preset-btn:hover {
+            background: #3182ce;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .clear-btn {
+            background: #e53e3e;
+            font-size: 14px;
+            padding: 8px 15px;
+            min-width: auto;
+        }
+        .clear-btn:hover {
+            background: #c53030;
+        }
+        /* New Styles for Daily Schedule */
+        .daily-schedule-list {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            max-height: 250px; /* Limit height for scrollability */
+            overflow-y: auto;
+        }
+        .daily-schedule-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            font-size: 0.95em;
+        }
+        .daily-schedule-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .daily-schedule-list h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: white;
+            font-size: 1.1em;
+        }
+        /* Styles for LLM justification section */
+        .justification-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
+            color: white;
+            border-radius: 10px;
+            font-size: 1.0em;
+            box-shadow: 0 4px 15px rgba(113, 128, 150, 0.3);
+        }
+        .justification-section h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.2em;
+            color: white;
+        }
+        .justification-section p {
+            white-space: pre-wrap; /* Preserve line breaks from LLM */
+        }
+        .loading-indicator {
+            text-align: center;
+            padding: 10px;
+            color: #e2e8f0;
+            font-style: italic;
+        }
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+            .button-group {
+                justify-content: center;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕐 Enhanced Overtime Calculator</h1>
+        
+        <div class="settings-section">
+            <h2>⚙️ Settings</h2>
+            <div class="input-group">
+                <div class="input-field">
+                    <label for="basicPay">Regular Basic Pay (RM):</label>
+                    <input type="number" id="basicPay" value="3700.00" min="0" step="0.01">
+                </div>
+                <div class="input-field">
+                    <label for="workingDaysPerMonth">Working Days/Month:</label>
+                    <input type="number" id="workingDaysPerMonth" value="26" min="1" step="1">
+                </div>
+                <div class="input-field">
+                    <label for="hoursPerDay">Hours/Day:</label>
+                    <input type="number" id="hoursPerDay" value="8" min="1" step="0.5">
+                </div>
+                <div class="input-field">
+                    <label>Calculated OT Hourly Rate (RM):</label>
+                    <div class="calculated-rate" id="calculatedHourlyRate"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <div class="input-field" style="flex: none;">
+                    <label for="currency">Currency Symbol:</label>
+                    <input type="text" id="currency" value="RM" style="width: 80px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="rate-info" id="rateInfo">
+            </div>
+        
+        <h2>💰 Calculate Pay from Hours</h2>
+        
+        <div class="preset-buttons">
+            <button class="preset-btn" onclick="setPreset('light')">Light Week (40h)</button>
+            <button class="preset-btn" onclick="setPreset('normal')">Normal Week (60h)</button>
+            <button class="preset-btn" onclick="setPreset('heavy')">Heavy Week (80h)</button>
+            <button class="preset-btn" onclick="setPreset('previous')">Previous Report</button>
+        </div>
+
+        <div class="input-group">
+            <div class="input-field">
+                <label for="restDayHours">Rest Day Hours (Sunday):</label>
+                <input type="number" id="restDayHours" value="0" min="0" step="0.5">
+                <small style="color: #666; font-size: 0.8em;">First 8h @ 0.5x, then 2x rate</small>
+            </div>
+            <div class="input-field">
+                <label for="normalOTHours">1.5x Working/Off Day Hours:</label>
+                <input type="number" id="normalOTHours" value="0" min="0" step="0.5">
+            </div>
+            <div class="input-field">
+                <label for="publicHolidayHours">2.0x Public Holiday Hours:</label>
+                <input type="number" id="publicHolidayHours" value="0" min="0" step="0.5">
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button onclick="calculateOTPay()">Calculate Pay</button>
+            <button onclick="addToHistory()" style="background: #38a169;">Add to History</button>
+            <button class="clear-btn" onclick="clearHours()">Clear Hours</button>
+            <button onclick="generateOvertimeJustification()" style="background: #764ba2;">Generate Justification ✨</button>
+        </div>
+
+        <div class="result" id="totalOTPayResult" style="display: none;">
+            </div>
+
+        <div class="justification-section" id="overtimeJustificationResult" style="display: none;">
+            <h3>✨ Overtime Justification</h3>
+            <div id="justificationText"></div>
+            <div class="loading-indicator" id="justificationLoading" style="display: none;">Generating justification...</div>
+        </div>
+
+        <h2>🎯 Calculate Hours from Target Pay</h2>
+        
+        <div class="input-group">
+            <div class="input-field">
+                <label for="targetPay">Target Overtime Pay:</label>
+                <input type="number" id="targetPay" value="4000" min="0" step="100">
+            </div>
+            <div class="input-field">
+                <label for="startDate">OT Start Date:</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="input-field">
+                <label for="endDate">OT End Date:</label>
+                <input type="date" id="endDate">
+            </div>
+        </div>
+
+        <div class="settings-section" style="margin: 15px 0;">
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95em;">
+                <input type="checkbox" id="includePublicHolidays" checked style="width: auto; margin: 0;">
+                Include Public Holiday (2.0x) hours in calculation
+            </label>
+            <small style="color: #666; margin-left: 30px; display: block; margin-top: 5px;">
+                Uncheck this if there are no public holidays in the target month
+            </small>
+        </div>
+
+        <div class="preset-buttons">
+            <button class="preset-btn" onclick="setTargetPreset(2000)">RM 2,000</button>
+            <button class="preset-btn" onclick="setTargetPreset(3000)">RM 3,000</button>
+            <button class="preset-btn" onclick="setTargetPreset(4000)">RM 4,000</button>
+            <button class="preset-btn" onclick="setTargetPreset(5000)">RM 5,000</button>
+        </div>
+
+        <button onclick="calculateHoursFromTarget()">Calculate Hours Needed</button>
+
+        <div class="result" id="hoursFromTargetResult" style="display: none;">
+            </div>
+
+        <h2>📊 Calculation History</h2>
+        <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+        <div class="history" id="calculationHistory">
+            <p style="text-align: center; color: #718096;">No calculations yet. Add calculations to see history.</p>
+        </div>
+    </div>
+
+    <script>
+        let calculationHistory = [];
+        
+        // Default proportions based on previous report
+        const DEFAULT_PROPORTIONS = {
+            restDay: 12.00,
+            normal: 134.33,
+            publicHoliday: 16.00
+        };
+
+        // Function to calculate the base hourly rate from basic pay
+        function calculateBaseHourlyRate() {
+            const basicPay = parseFloat(document.getElementById('basicPay').value) || 0;
+            const workingDays = parseFloat(document.getElementById('workingDaysPerMonth').value) || 1;
+            const hoursPerDay = parseFloat(document.getElementById('hoursPerDay').value) || 1;
+
+            if (basicPay <= 0 || workingDays <= 0 || hoursPerDay <= 0) {
+                document.getElementById('calculatedHourlyRate').innerText = 'N/A';
+                return 0; // Return 0 to prevent division by zero errors elsewhere
+            }
+
+            const calculatedRate = basicPay / workingDays / hoursPerDay;
+            document.getElementById('calculatedHourlyRate').innerText = `RM ${calculatedRate.toFixed(2)}/hr`;
+            return calculatedRate;
+        }
+
+        // Function to calculate rest day pay with tiered rates (0.5x for first 8h, 2.0x thereafter)
+        function calculateRestDayPay(hours, hourlyRate) {
+            if (hours <= 8) {
+                return {
+                    totalPay: hours * (hourlyRate * 0.5),
+                    hours05x: hours,
+                    hours20x: 0,
+                    pay05x: hours * (hourlyRate * 0.5),
+                    pay20x: 0
+                };
+            } else {
+                const hours05x = 8;
+                const hours20x = hours - 8;
+                const pay05x = hours05x * (hourlyRate * 0.5);
+                const pay20x = hours20x * (hourlyRate * 2.0);
+                return {
+                    totalPay: pay05x + pay20x,
+                    hours05x,
+                    hours20x,
+                    pay05x,
+                    pay20x
+                };
+            }
+        }
+
+        // Function to update the displayed rates info
+        function updateRateInfo() {
+            const hourlyRate = calculateBaseHourlyRate(); // Get the dynamically calculated hourly rate
+            const currency = document.getElementById('currency').value || 'RM';
+            
+            // Calculate effective rates for display
+            const rate05x = (hourlyRate * 0.5).toFixed(2);
+            const rate15x = (hourlyRate * 1.5).toFixed(2);
+            const rate20x = (hourlyRate * 2.0).toFixed(2);
+            
+            document.getElementById('rateInfo').innerHTML = 
+                `Current overtime rates: Rest Day 1-8h @ ${currency} ${rate05x}/hr, 9h+ @ ${currency} ${rate20x}/hr | Working/Off Day @ ${currency} ${rate15x}/hr | Public Holiday @ ${currency} ${rate20x}/hr`;
+            
+            // Re-calculate other sections to ensure they use the new hourly rate
+            calculateOTPay();
+            calculateHoursFromTarget();
+        }
+
+        // Function to set preset hours for calculation
+        function setPreset(type) {
+            switch(type) {
+                case 'light':
+                    document.getElementById('restDayHours').value = '8';
+                    document.getElementById('normalOTHours').value = '30';
+                    document.getElementById('publicHolidayHours').value = '2';
+                    break;
+                case 'normal':
+                    document.getElementById('restDayHours').value = '12';
+                    document.getElementById('normalOTHours').value = '45';
+                    document.getElementById('publicHolidayHours').value = '3';
+                    break;
+                case 'heavy':
+                    document.getElementById('restDayHours').value = '16';
+                    document.getElementById('normalOTHours').value = '60';
+                    document.getElementById('publicHolidayHours').value = '4';
+                    break;
+                case 'previous':
+                    document.getElementById('restDayHours').value = DEFAULT_PROPORTIONS.restDay;
+                    document.getElementById('normalOTHours').value = DEFAULT_PROPORTIONS.normal;
+                    document.getElementById('publicHolidayHours').value = DEFAULT_PROPORTIONS.publicHoliday;
+                    break;
+            }
+            calculateOTPay(); // Recalculate and display pay after setting hours
+        }
+
+        // Function to set target pay preset for calculation
+        function setTargetPreset(amount) {
+            document.getElementById('targetPay').value = amount;
+            calculateHoursFromTarget(); // Recalculate and display hours after setting target pay
+        }
+
+        // Function to clear input hours
+        function clearHours() {
+            document.getElementById('restDayHours').value = '0';
+            document.getElementById('normalOTHours').value = '0';
+            document.getElementById('publicHolidayHours').value = '0';
+            document.getElementById('totalOTPayResult').style.display = 'none'; // Hide results when cleared
+        }
+
+        // Function to calculate total overtime pay from input hours
+        function calculateOTPay() {
+            const hourlyRate = calculateBaseHourlyRate(); // Get the dynamically calculated hourly rate
+            const currency = document.getElementById('currency').value || 'RM';
+            const restDayHours = parseFloat(document.getElementById('restDayHours').value) || 0;
+            const normalOTHours = parseFloat(document.getElementById('normalOTHours').value) || 0;
+            const publicHolidayHours = parseFloat(document.getElementById('publicHolidayHours').value) || 0;
+
+            const restDayResult = calculateRestDayPay(restDayHours, hourlyRate); // Use the tiered rest day calculation
+            const normalOTPay = normalOTHours * (hourlyRate * 1.5);
+            const publicHolidayPay = publicHolidayHours * (hourlyRate * 2.0);
+            
+            const totalPay = restDayResult.totalPay + normalOTPay + publicHolidayPay;
+            const totalHours = restDayHours + normalOTHours + publicHolidayHours;
+            const avgRate = totalHours > 0 ? totalPay / totalHours : 0;
+
+            const resultDiv = document.getElementById('totalOTPayResult');
+            resultDiv.style.display = 'block'; // Make sure the result div is visible
+            
+            let restDayBreakdown = '';
+            if (restDayResult.hours05x > 0 && restDayResult.hours20x > 0) {
+                restDayBreakdown = `Rest Day: ${restDayResult.hours05x.toFixed(1)}h @ 0.5x + ${restDayResult.hours20x.toFixed(1)}h @ 2x (${restDayHours.toFixed(1)}h total)`;
+            } else if (restDayResult.hours05x > 0) {
+                restDayBreakdown = `Rest Day: ${restDayResult.hours05x.toFixed(1)}h @ 0.5x`;
+            } else {
+                restDayBreakdown = `Rest Day: 0h`;
+            }
+            
+            resultDiv.innerHTML = `
+                <h3>💰 Overtime Pay Calculation</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${currency} ${totalPay.toFixed(2)}</div>
+                        <div class="stat-label">Total Pay</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalHours.toFixed(1)}h</div>
+                        <div class="stat-label">Total Hours</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${currency} ${avgRate.toFixed(2)}</div>
+                        <div class="stat-label">Avg Rate/hr</div>
+                    </div>
+                </div>
+                <div class="breakdown">
+                    <div class="breakdown-item">
+                        <span>${restDayBreakdown}:</span>
+                        <span>${currency} ${restDayResult.totalPay.toFixed(2)}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span>1.5x Working/Off Day (${normalOTHours.toFixed(1)}h):</span>
+                        <span>${currency} ${normalOTPay.toFixed(2)}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span>2.0x Public Holiday (${publicHolidayHours.toFixed(1)}h):</span>
+                        <span>${currency} ${publicHolidayPay.toFixed(2)}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span>Total:</span>
+                        <span>${currency} ${totalPay.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Helper function to format hours (e.g., 18.5) into "HH:MM AM/PM"
+        function formatHoursToTime(hours) {
+            let totalMinutes = Math.round(hours * 60);
+            let h = Math.floor(totalMinutes / 60);
+            let m = totalMinutes % 60;
+            
+            const ampm = h >= 12 && h < 24 ? 'PM' : 'AM';
+            h = h % 12;
+            h = h === 0 ? 12 : h; // 12 AM or 12 PM for 0 or 24 hour mark
+            
+            return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
+        }
+
+        // Helper function to get a random number within a range
+        function getRandom(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // Function to calculate hours needed for a target pay
+        function calculateHoursFromTarget() {
+            const hourlyRate = calculateBaseHourlyRate(); // Get the dynamically calculated hourly rate
+            const currency = document.getElementById('currency').value || 'RM';
+            const targetPay = parseFloat(document.getElementById('targetPay').value) || 0;
+            const includePublicHolidays = document.getElementById('includePublicHolidays').checked;
+            const startDateStr = document.getElementById('startDate').value;
+            const endDateStr = document.getElementById('endDate').value;
+
+            if (targetPay <= 0 || hourlyRate <= 0) {
+                document.getElementById('hoursFromTargetResult').innerHTML = 
+                    '<h3>⚠️ Please enter a valid target pay and basic rate settings.</h3>';
+                document.getElementById('hoursFromTargetResult').style.display = 'block';
+                return;
+            }
+
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+
+            if (isNaN(startDate) || isNaN(endDate) || startDate > endDate) {
+                document.getElementById('hoursFromTargetResult').innerHTML = 
+                    '<h3>⚠️ Please select valid start and end dates.</h3>';
+                document.getElementById('hoursFromTargetResult').style.display = 'block';
+                return;
+            }
+
+            const oneDay = 24 * 60 * 60 * 1000; // milliseconds in a day
+            const totalCalendarDays = Math.round(Math.abs((endDate - startDate) / oneDay)) + 1;
+
+            // Calculate weighted hours from previous report, considering rest day tiered rates (using hourlyRate = 1 for weighted hours)
+            const previousRestDayResult = calculateRestDayPay(DEFAULT_PROPORTIONS.restDay, 1);
+            const previousRestDayWeightedHours = previousRestDayResult.hours05x * 0.5 + previousRestDayResult.hours20x * 2.0;
+            
+            let totalWeightedHours, newRestDayHours, newNormalHours, newPublicHolidayHours;
+
+            if (includePublicHolidays) {
+                totalWeightedHours = 
+                    previousRestDayWeightedHours + 
+                    (DEFAULT_PROPORTIONS.normal * 1.5) + 
+                    (DEFAULT_PROPORTIONS.publicHoliday * 2.0);
+                
+                const targetWeightedHours = targetPay / hourlyRate;
+                const scalingFactor = targetWeightedHours / totalWeightedHours;
+                
+                newRestDayHours = DEFAULT_PROPORTIONS.restDay * scalingFactor;
+                newNormalHours = DEFAULT_PROPORTIONS.normal * scalingFactor;
+                newPublicHolidayHours = DEFAULT_PROPORTIONS.publicHoliday * scalingFactor;
+            } else {
+                // If public holidays are excluded, redistribute their weighted value proportionally to rest day and normal hours.
+                
+                // Calculate original weighted hours without public holidays
+                const originalNonPublicWeightedHours = previousRestDayWeightedHours + (DEFAULT_PROPORTIONS.normal * 1.5);
+
+                // Add the effective weighted hours of public holidays to the non-public weighted hours
+                // This effectively boosts the target contribution from non-public hours
+                const adjustedTargetWeightedHoursForNonPublic = (targetPay / hourlyRate);
+
+                // Calculate a new scaling factor based only on non-public weighted hours
+                const scalingFactor = adjustedTargetWeightedHoursForNonPublic / originalNonPublicWeightedHours;
+
+                newRestDayHours = DEFAULT_PROPORTIONS.restDay * scalingFactor;
+                newNormalHours = DEFAULT_PROPORTIONS.normal * scalingFactor;
+                newPublicHolidayHours = 0; // Public holidays are explicitly excluded
+            }
+
+            const totalHours = newRestDayHours + newNormalHours + newPublicHolidayHours;
+            const weeksNeeded = totalHours / 40; // Assuming 40 hours is a standard work week
+            const hoursPerDayAverage = totalCalendarDays > 0 ? totalHours / totalCalendarDays : 0; // New calculation
+
+            // Calculate rest day breakdown for display
+            const restDayResultForDisplay = calculateRestDayPay(newRestDayHours, hourlyRate); // Use actual hourly rate for pay calculation in display
+            
+            const resultDiv = document.getElementById('hoursFromTargetResult');
+            resultDiv.style.display = 'block';
+            
+            let restDayBreakdownText = '';
+            if (newRestDayHours > 8) {
+                restDayBreakdownText = `${restDayResultForDisplay.hours05x.toFixed(1)}h @ 0.5x + ${restDayResultForDisplay.hours20x.toFixed(1)}h @ 2x`;
+            } else {
+                restDayBreakdownText = `${newRestDayHours.toFixed(1)}h @ 0.5x`;
+            }
+            
+            let breakdownHTML = `
+                <div class="breakdown-item">
+                    <span>Rest Day Hours (${restDayBreakdownText}):</span>
+                    <span>${newRestDayHours.toFixed(1)}h total</span>
+                </div>
+                <div class="breakdown-item">
+                    <span>1.5x Working/Off Day Hours:</span>
+                    <span>${newNormalHours.toFixed(1)}h</span>
+                </div>
+            `;
+            
+            if (includePublicHolidays) {
+                breakdownHTML += `
+                    <div class="breakdown-item">
+                        <span>2.0x Public Holiday Hours:</span>
+                        <span>${newPublicHolidayHours.toFixed(1)}h</span>
+                    </div>
+                `;
+            } else {
+                breakdownHTML += `
+                    <div class="breakdown-item" style="color: rgba(255,255,255,0.7); font-style: italic;">
+                        <span>2.0x Public Holiday Hours:</span>
+                        <span>0h (excluded)</span>
+                    </div>
+                `;
+            }
+            
+            breakdownHTML += `
+                <div class="breakdown-item">
+                    <span>Total Hours:</span>
+                    <span>${totalHours.toFixed(1)}h</span>
+                </div>
+            `;
+
+            // --- Daily Schedule Suggestion ---
+            let dailyScheduleHTML = '';
+            const dailySuggestedHoursList = [];
+            const randomVariationRange = 1.0; // +/- 1 hour for randomization
+
+            // Populate initial daily hours with randomization
+            for (let i = 0; i < totalCalendarDays; i++) {
+                let suggestedHours = hoursPerDayAverage + getRandom(-randomVariationRange, randomVariationRange);
+                // Ensure hours don't go below zero
+                dailySuggestedHoursList.push(Math.max(0, suggestedHours));
+            }
+
+            // Normalize to ensure total sum matches exactly
+            const currentSum = dailySuggestedHoursList.reduce((sum, hours) => sum + hours, 0);
+            const difference = totalHours - currentSum;
+            const adjustmentPerDay = difference / totalCalendarDays;
+
+            for (let i = 0; i < totalCalendarDays; i++) {
+                dailySuggestedHoursList[i] += adjustmentPerDay;
+                // Ensure no negative hours after adjustment
+                dailySuggestedHoursList[i] = Math.max(0, dailySuggestedHoursList[i]);
+            }
+
+            dailyScheduleHTML += '<h4>Daily Overtime Schedule Suggestion (Randomized Average):</h4>';
+            dailyScheduleHTML += '<p style="font-size: 0.9em; margin-top: 5px; color: rgba(255,255,255,0.7);">These are randomized daily targets that sum up to your total required hours. You can adjust these times and vary daily hours (as long as it fits company policy) to meet your total hours for the period. Specific Rest Day and Public Holiday hour distribution is accounted for in the total but not detailed in this daily breakdown.</p>';
+            dailyScheduleHTML += '<div class="daily-schedule-list">';
+            
+            let currentDayIndex = 0;
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dateString = d.toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric' });
+                const dayOfWeek = d.toLocaleDateString('en-MY', { weekday: 'long' });
+                let suggestedHours = dailySuggestedHoursList[currentDayIndex];
+
+                // Ensure no tiny hours are displayed, round to 1 decimal place.
+                if (suggestedHours < 0.05) { // Small threshold to consider it zero
+                    suggestedHours = 0;
+                }
+                
+                // Generic overtime window for all days
+                const minAllowedStartHour = 18; // 6 PM
+                const maxAllowedEndHour = 26; // 2 AM next day (24 + 2)
+                
+                let actualStartTimeFloat;
+                let latestPossibleStartTime = maxAllowedEndHour - suggestedHours;
+
+                if (latestPossibleStartTime < minAllowedStartHour) {
+                    actualStartTimeFloat = minAllowedStartHour;
+                } else {
+                    actualStartTimeFloat = getRandom(minAllowedStartHour, latestPossibleStartTime);
+                }
+
+                const actualEndTimeFloat = actualStartTimeFloat + suggestedHours;
+
+                const startTimeFormatted = formatHoursToTime(actualStartTimeFloat);
+                const endTimeFormatted = formatHoursToTime(actualEndTimeFloat);
+                
+                if (suggestedHours > 0) { // Only show days with actual hours
+                    dailyScheduleHTML += `
+                        <div class="daily-schedule-item">
+                            <span>${dateString} (${dayOfWeek}):</span>
+                            <span>${suggestedHours.toFixed(1)}h | ${startTimeFormatted} - ${endTimeFormatted}</span>
+                        </div>
+                    `;
+                }
+                currentDayIndex++;
+            }
+            dailyScheduleHTML += '</div>'; // Close daily-schedule-list
+
+            const holidayStatus = includePublicHolidays ? "with Public Holidays" : "without Public Holidays";
+            
+            resultDiv.innerHTML = `
+                <h3>🎯 Hours Needed for ${currency} ${targetPay.toFixed(2)} (${holidayStatus})</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${totalHours.toFixed(1)}h</div>
+                        <div class="stat-label">Total Hours</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${weeksNeeded.toFixed(1)}</div>
+                        <div class="stat-label">Weeks (~40h/week)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${hoursPerDayAverage.toFixed(1)}h</div>
+                        <div class="stat-label">Avg. Hours/Calendar Day</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalCalendarDays} days</div>
+                        <div class="stat-label">OT Period Duration</div>
+                    </div>
+                </div>
+                <div class="breakdown">
+                    ${breakdownHTML}
+                </div>
+                ${dailyScheduleHTML} `;
+        }
+
+        // Function to add current calculation to history
+        function addToHistory() {
+            const hourlyRate = calculateBaseHourlyRate();
+            const currency = document.getElementById('currency').value || 'RM';
+            const restDayHours = parseFloat(document.getElementById('restDayHours').value) || 0;
+            const normalOTHours = parseFloat(document.getElementById('normalOTHours').value) || 0;
+            const publicHolidayHours = parseFloat(document.getElementById('publicHolidayHours').value) || 0;
+            
+            // Re-calculate pay to ensure history reflects current inputs
+            const restDayResult = calculateRestDayPay(restDayHours, hourlyRate);
+            const normalOTPay = normalOTHours * (hourlyRate * 1.5);
+            const publicHolidayPay = publicHolidayHours * (hourlyRate * 2.0);
+            const totalPay = restDayResult.totalPay + normalOTPay + publicHolidayPay;
+            const totalHours = restDayHours + normalOTHours + publicHolidayHours;
+            
+            if (totalHours === 0 && totalPay === 0) { // Check if any hours or pay exist
+                alert('Please enter some hours to calculate pay before adding to history.');
+                return;
+            }
+
+            const calculation = {
+                date: new Date().toLocaleString(),
+                restDayHours: restDayHours.toFixed(1),
+                normalOTHours: normalOTHours.toFixed(1),
+                publicHolidayHours: publicHolidayHours.toFixed(1),
+                totalHours: totalHours.toFixed(1),
+                totalPay: totalPay.toFixed(2),
+                hourlyRate: hourlyRate.toFixed(2),
+                currency
+            };
+
+            calculationHistory.unshift(calculation); // Add to the beginning of the array
+            updateHistoryDisplay();
+        }
+
+        // Function to update the display of calculation history
+        function updateHistoryDisplay() {
+            const historyDiv = document.getElementById('calculationHistory');
+            
+            if (calculationHistory.length === 0) {
+                historyDiv.innerHTML = '<p style="text-align: center; color: #718096;">No calculations yet. Add calculations to see history.</p>';
+                return;
+            }
+
+            let historyHTML = '';
+            calculationHistory.forEach((calc, index) => {
+                historyHTML += `
+                    <div class="history-item">
+                        <strong>${calc.date}</strong><br>
+                        Hours: ${calc.restDayHours}h (0.5x) + ${calc.normalOTHours}h (1.5x) + ${calc.publicHolidayHours}h (2.0x) = ${calc.totalHours}h<br>
+                        <strong>Total Pay: ${calc.currency} ${calc.totalPay}</strong><br>
+                        <small>OT Rate: ${calc.currency} ${calc.hourlyRate}/hr</small>
+                    </div>
+                `;
+            });
+            
+            historyDiv.innerHTML = historyHTML;
+        }
+
+        // Function to clear all calculation history
+        function clearHistory() {
+            if (calculationHistory.length === 0) {
+                alert('History is already empty.');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to clear all calculation history?')) {
+                calculationHistory = [];
+                updateHistoryDisplay();
+            }
+        }
+
+        // Function to generate overtime justification using Gemini API
+        async function generateOvertimeJustification() {
+            const totalPayResultDiv = document.getElementById('totalOTPayResult');
+            const justificationResultDiv = document.getElementById('overtimeJustificationResult');
+            const justificationTextDiv = document.getElementById('justificationText');
+            const loadingIndicator = document.getElementById('justificationLoading');
+
+            // Ensure a calculation has been made first
+            if (totalPayResultDiv.style.display !== 'block') {
+                alert('Please calculate overtime pay first to generate a justification.');
+                return;
+            }
+
+            const totalHours = parseFloat(document.getElementById('restDayHours').value) +
+                             parseFloat(document.getElementById('normalOTHours').value) +
+                             parseFloat(document.getElementById('publicHolidayHours').value);
+            const restDayHours = parseFloat(document.getElementById('restDayHours').value);
+            const normalOTHours = parseFloat(document.getElementById('normalOTHours').value);
+            const publicHolidayHours = parseFloat(document.getElementById('publicHolidayHours').value);
+            const totalPay = parseFloat(totalPayResultDiv.querySelector('.stat-value').innerText.replace(/[^0-9.-]+/g,"")); // Extract number from total pay display
+
+            if (totalHours === 0) {
+                justificationTextDiv.innerText = 'No overtime hours entered to justify.';
+                justificationResultDiv.style.display = 'block';
+                return;
+            }
+
+            justificationTextDiv.innerText = ''; // Clear previous text
+            justificationResultDiv.style.display = 'block';
+            loadingIndicator.style.display = 'block'; // Show loading
+
+            const prompt = `Generate a concise, professional justification for overtime work.
+            Total Overtime Hours: ${totalHours.toFixed(1)} hours
+            Breakdown:
+            - Rest Day Hours: ${restDayHours.toFixed(1)} hours
+            - Normal Working/Off Day Hours: ${normalOTHours.toFixed(1)} hours
+            - Public Holiday Hours: ${publicHolidayHours.toFixed(1)} hours
+            Total Overtime Pay: RM ${totalPay.toFixed(2)}
+
+            Focus on the necessity of the work, its impact, and the commitment shown. Keep it under 100 words.`;
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // If you want to use models other than gemini-2.0-flash or imagen-3.0-generate-002, provide an API key here. Otherwise, leave this as-is.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    justificationTextDiv.innerText = text;
+                } else {
+                    justificationTextDiv.innerText = 'Failed to generate justification. Please try again.';
+                    console.error('Gemini API response structure unexpected:', result);
+                }
+            } catch (error) {
+                justificationTextDiv.innerText = 'Error generating justification. Please check your network connection or try again later.';
+                console.error('Error calling Gemini API:', error);
+            } finally {
+                loadingIndicator.style.display = 'none'; // Hide loading regardless of success or failure
+            }
+        }
+
+        // Event listeners for real-time updates and initialization
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Set default dates from previous conversation (June 26 to July 25, 2025)
+            document.getElementById('startDate').value = '2025-06-26';
+            document.getElementById('endDate').value = '2025-07-25';
+
+            updateRateInfo(); // Initialize rate display and trigger other calculations
+            updateHistoryDisplay(); // Load history if any
+        });
+
+        // Add event listeners for the new basic pay inputs
+        document.getElementById('basicPay').addEventListener('input', updateRateInfo);
+        document.getElementById('workingDaysPerMonth').addEventListener('input', updateRateInfo);
+        document.getElementById('hoursPerDay').addEventListener('input', updateRateInfo);
+
+        // Existing event listeners for currency and other sections
+        document.getElementById('currency').addEventListener('input', updateRateInfo);
+        
+        ['restDayHours', 'normalOTHours', 'publicHolidayHours'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                if (document.getElementById('totalOTPayResult').style.display === 'block') {
+                    calculateOTPay();
+                }
+            });
+        });
+
+        // Event listeners for date inputs
+        document.getElementById('startDate').addEventListener('change', calculateHoursFromTarget);
+        document.getElementById('endDate').addEventListener('change', calculateHoursFromTarget);
+
+        document.getElementById('targetPay').addEventListener('input', () => {
+            if (document.getElementById('hoursFromTargetResult').style.display === 'block') {
+                calculateHoursFromTarget();
+            }
+        });
+
+        document.getElementById('includePublicHolidays').addEventListener('change', () => {
+            if (document.getElementById('hoursFromTargetResult').style.display === 'block') {
+                calculateHoursFromTarget();
+            }
+        });
+    </script>
+</body>
+</html>
