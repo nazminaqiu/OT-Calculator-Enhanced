@@ -18,17 +18,50 @@
             padding: 20px;
             box-sizing: border-box;
         }
-        .container {
+        .main-wrapper {
+            display: flex;
+            flex-direction: column; /* Default to column on small screens */
+            gap: 25px;
+            max-width: 1200px; /* Increased max-width to accommodate two columns */
+            width: 100%;
+        }
+        @media (min-width: 1024px) { /* md breakpoint for two columns */
+            .main-wrapper {
+                flex-direction: row; /* Two columns on larger screens */
+                align-items: flex-start;
+            }
+        }
+
+        .form-content {
             background-color: #ffffff;
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            max-width: 900px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
+            flex: 2; /* Takes 2/3 of the space */
+            width: 100%; /* Ensure it takes full width in column layout */
         }
+        @media (min-width: 1024px) {
+            .form-content {
+                width: auto; /* Let flex handle width */
+            }
+        }
+
+        .summary-sidebar {
+            flex: 1; /* Takes 1/3 of the space */
+            width: 100%; /* Ensure it takes full width in column layout */
+            position: sticky; /* Make it sticky */
+            top: 20px; /* Distance from the top when sticky */
+            align-self: flex-start; /* Align to the top of the flex container */
+            max-height: calc(100vh - 40px); /* Max height to fit viewport, considering padding */
+            overflow-y: auto; /* Add scroll if content is too long */
+            padding-bottom: 20px; /* Add some padding at the bottom */
+        }
+        @media (min-width: 1024px) {
+            .summary-sidebar {
+                width: auto; /* Let flex handle width */
+            }
+        }
+
         .input-group label {
             font-weight: 600;
             color: #374151; /* Darker gray for labels */
@@ -180,7 +213,7 @@
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
-            .container {
+            .form-content, .summary-sidebar {
                 padding: 20px;
             }
             .ot-entry-row {
@@ -243,181 +276,210 @@
             display: inline-block;
             vertical-align: middle;
         }
+
+        /* Styles for inline summary display */
+        .summary-inline-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Space between items */
+            font-size: 1.0rem;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        .summary-inline-group strong {
+            display: block; /* Ensure the strong tag is on its own line */
+            width: 100%; /* Take full width */
+            margin-bottom: 4px;
+        }
+        .summary-inline-item {
+            display: inline-block;
+            padding: 4px 8px;
+            background-color: #e0e7ff; /* Light indigo background */
+            border-radius: 6px;
+            color: #4f46e5; /* Darker indigo text */
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-6">OT Calculator</h2>
-        <div id="userIdDisplay" class="hidden"></div>
+    <div class="main-wrapper">
+        <div class="form-content">
+            <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-6">OT Calculator</h2>
+            <div id="userIdDisplay" class="hidden"></div>
 
-        <!-- Employee Settings -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Employee Settings</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div class="input-group">
-                    <label for="basicSalary">Basic Monthly Salary (RM)</label>
-                    <input type="number" id="basicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm">
+            <!-- Employee Settings -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Employee Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="input-group">
+                        <label for="basicSalary">Basic Monthly Salary (RM)</label>
+                        <input type="number" id="basicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm">
+                    </div>
+                    <div class="input-group">
+                        <label for="targetOTPaySelect">Target OT Pay (RM) (Optional)</label>
+                        <select id="targetOTPaySelect" class="shadow-sm mb-2">
+                            <option value="">No Target</option>
+                            <!-- Options will be dynamically added by JavaScript -->
+                            <option value="custom">Other (Enter Manually)</option>
+                        </select>
+                        <input type="number" id="customTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label for="targetOTPaySelect">Target OT Pay (RM) (Optional)</label>
-                    <select id="targetOTPaySelect" class="shadow-sm mb-2">
-                        <option value="">No Target</option>
-                        <!-- Options will be dynamically added by JavaScript -->
-                        <option value="custom">Other (Enter Manually)</option>
+                <p class="text-sm text-gray-600 mt-4">
+                    Working Schedule: 5 days/week, Saturday: Off Day, Sunday: Rest Day.
+                    For payroll, employer uses 26 working days monthly.
+                </p>
+            </div>
+
+            <!-- Date Range Container -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">OT Planning Date Range</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="input-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" class="shadow-sm">
+                    </div>
+                    <div class="input-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" class="shadow-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Public Holiday Management -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Public Holiday Management</h3>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                    <div class="input-group flex-grow">
+                        <label for="publicHolidayDate">Add Public Holiday Date</label>
+                        <input type="date" id="publicHolidayDate" class="shadow-sm">
+                    </div>
+                    <button id="addPublicHolidayBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Add Holiday
+                    </button>
+                </div>
+                <ul id="publicHolidaysList" class="list-disc list-inside ml-4 text-gray-700">
+                    <!-- Public holidays will be listed here -->
+                </ul>
+            </div>
+
+            <!-- OT Multiplier Settings -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">OT Multiplier Settings</h3>
+                <div id="otMultiplierInputs" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                    <!-- Multiplier inputs will be dynamically generated here -->
+                </div>
+                <button id="resetMultipliersBtn" class="btn btn-secondary" aria-label="Reset OT multipliers to default">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    Reset to Default Multipliers
+                </button>
+            </div>
+
+            <!-- Daily OT Entries -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Daily Overtime Entries</h3>
+                <div class="input-group mb-4">
+                    <label for="allocationStrategy">Allocation Strategy</label>
+                    <select id="allocationStrategy" class="shadow-sm">
+                        <option value="Target-Driven">Target-Driven (using Workload Presets)</option>
+                        <option value="Workload-Driven">Workload-Driven (Fill All Days)</option>
                     </select>
-                    <input type="number" id="customTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay">
                 </div>
-            </div>
-            <p class="text-sm text-gray-600 mt-4">
-                Working Schedule: 5 days/week, Saturday: Off Day, Sunday: Rest Day.
-                For payroll, employer uses 26 working days monthly.
-            </p>
-        </div>
+                <div class="input-group mb-4">
+                    <label for="workloadPreset">Workload Preset for Auto Allocation</label>
+                    <select id="workloadPreset" class="shadow-sm">
+                        <option value="Moderate Workload">Moderate Workload</option>
+                        <option value="Light Workload">Light Workload</option>
+                        <option value="Heavy Workload">Heavy Workload</option>
+                    </select>
+                </div>
+                <!-- Dynamic Workload Preset Details -->
+                <div id="workloadPresetDetails" class="text-sm text-gray-700 mb-4 p-3 bg-gray-100 rounded-md border border-gray-200">
+                    <!-- Details will be inserted here by JavaScript -->
+                </div>
 
-        <!-- Date Range Container -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">OT Planning Date Range</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div class="input-group">
-                    <label for="startDate">Start Date</label>
-                    <input type="date" id="startDate" class="shadow-sm">
-                </div>
-                <div class="input-group">
-                    <label for="endDate">End Date</label>
-                    <input type="date" id="endDate" class="shadow-sm">
-                </div>
-            </div>
-        </div>
-
-        <!-- Public Holiday Management -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Public Holiday Management</h3>
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <div class="input-group flex-grow">
-                    <label for="publicHolidayDate">Add Public Holiday Date</label>
-                    <input type="date" id="publicHolidayDate" class="shadow-sm">
-                </div>
-                <button id="addPublicHolidayBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday">
+                <button id="autoAllocateBtn" class="btn btn-secondary w-full mb-4" aria-label="Auto allocate hours">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
                     </svg>
-                    Add Holiday
+                    Auto Allocate Hours
+                    <span id="autoAllocateLoading" class="loading-indicator hidden">Allocating...</span>
                 </button>
+                <div id="otEntriesContainer">
+                    <!-- OT entry rows will be added here by JavaScript -->
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 mt-4">
+                    <button id="addOTEntryBtn" class="btn btn-secondary flex-grow" aria-label="Add new OT entry">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Add OT Entry
+                    </button>
+                    <button id="clearAllEntriesBtn" class="btn btn-danger flex-grow" aria-label="Clear all OT entries">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                    </svg>
+                        Clear All Entries
+                    </button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 mt-4">
+                    <button id="saveDataBtn" class="btn btn-primary flex-grow" aria-label="Save current data">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7 3a1 1 0 00-1 1v1a1 1 0 001 1h6a1 1 0 001-1V4a1 1 0 00-1-1H7z" />
+                            <path fill-rule="evenodd" d="M18 8H2a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2v-8a2 2 0 00-2-2zM4 13a1 1 0 011-1h10a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3z" clip-rule="evenodd" />
+                        </svg>
+                        Save Data
+                    </button>
+                    <button id="loadDataBtn" class="btn btn-secondary flex-grow" aria-label="Load saved data">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        Load Data
+                    </button>
+                </div>
             </div>
-            <ul id="publicHolidaysList" class="list-disc list-inside ml-4 text-gray-700">
-                <!-- Public holidays will be listed here -->
-            </ul>
-        </div>
 
-        <!-- OT Multiplier Settings -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">OT Multiplier Settings</h3>
-            <div id="otMultiplierInputs" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
-                <!-- Multiplier inputs will be dynamically generated here -->
-            </div>
-            <button id="resetMultipliersBtn" class="btn btn-secondary" aria-label="Reset OT multipliers to default">
+            <button id="calculateBtn" class="btn btn-primary w-full mt-4" aria-label="Calculate total OT pay">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    <path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v4a1 1 0 01-1 1H3a1 1 0 01-1-1v-4z" />
+                    <path fill-rule="evenodd" d="M14.5 4.5a3 3 0 11-6 0 3 3 0 016 0zm-6.293 3.293a1 1 0 011.414 0L10 8.586l.293-.293a1 1 0 011.414 0l.707.707a1 1 0 010 1.414L10 11.414l-.293.293a1 1 0 01-1.414 0l-.707-.707a1 1 0 010-1.414L9.414 9l-.293-.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
-                Reset to Default Multipliers
+                Calculate OT
             </button>
         </div>
 
-        <!-- Daily OT Entries -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Daily Overtime Entries</h3>
-            <div class="input-group mb-4">
-                <label for="allocationStrategy">Allocation Strategy</label>
-                <select id="allocationStrategy" class="shadow-sm">
-                    <option value="Target-Driven">Target-Driven (using Workload Presets)</option>
-                    <option value="Workload-Driven">Workload-Driven (Fill All Days)</option>
-                </select>
-            </div>
-            <div class="input-group mb-4">
-                <label for="workloadPreset">Workload Preset for Auto Allocation</label>
-                <select id="workloadPreset" class="shadow-sm">
-                    <option value="Moderate Workload">Moderate Workload</option>
-                    <option value="Light Workload">Light Workload</option>
-                    <option value="Heavy Workload">Heavy Workload</option>
-                </select>
-            </div>
-            <!-- Dynamic Workload Preset Details -->
-            <div id="workloadPresetDetails" class="text-sm text-gray-700 mb-4 p-3 bg-gray-100 rounded-md border border-gray-200">
-                <!-- Details will be inserted here by JavaScript -->
-            </div>
-
-            <button id="autoAllocateBtn" class="btn btn-secondary w-full mb-4" aria-label="Auto allocate hours">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
-                </svg>
-                Auto Allocate Hours
-                <span id="autoAllocateLoading" class="loading-indicator hidden">Allocating...</span>
-            </button>
-            <div id="otEntriesContainer">
-                <!-- OT entry rows will be added here by JavaScript -->
-            </div>
-            <div class="flex flex-col sm:flex-row gap-4 mt-4">
-                <button id="addOTEntryBtn" class="btn btn-secondary flex-grow" aria-label="Add new OT entry">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Add OT Entry
-                </button>
-                <button id="clearAllEntriesBtn" class="btn btn-danger flex-grow" aria-label="Clear all OT entries">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
-                </svg>
-                    Clear All Entries
-                </button>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-4 mt-4">
-                <button id="saveDataBtn" class="btn btn-primary flex-grow" aria-label="Save current data">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M7 3a1 1 0 00-1 1v1a1 1 0 001 1h6a1 1 0 001-1V4a1 1 0 00-1-1H7z" />
-                        <path fill-rule="evenodd" d="M18 8H2a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2v-8a2 2 0 00-2-2zM4 13a1 1 0 011-1h10a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3z" clip-rule="evenodd" />
-                    </svg>
-                    Save Data
-                </button>
-                <button id="loadDataBtn" class="btn btn-secondary flex-grow" aria-label="Load saved data">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                    </svg>
-                    Load Data
-                </button>
-            </div>
-        </div>
-
-        <button id="calculateBtn" class="btn btn-primary w-full mt-4" aria-label="Calculate total OT pay">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v4a1 1 0 01-1 1H3a1 1 0 01-1-1v-4z" />
-                <path fill-rule="evenodd" d="M14.5 4.5a3 3 0 11-6 0 3 3 0 016 0zm-6.293 3.293a1 1 0 011.414 0L10 8.586l.293-.293a1 1 0 011.414 0l.707.707a1 1 0 010 1.414L10 11.414l-.293.293a1 1 0 01-1.414 0l-.707-.707a1 1 0 010-1.414L9.414 9l-.293-.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-            Calculate OT
-        </button>
-
-        <!-- Results Section (Moved Here) -->
-        <div id="results" class="results-section hidden mt-6">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4">Calculation Summary</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <p><strong>Total OT Hours by Type:</strong></p>
-                    <ul id="totalHoursByType" class="list-disc list-inside ml-4 text-gray-700"></ul>
+        <!-- Results Section (Moved to a sticky sidebar) -->
+        <div class="summary-sidebar">
+            <div id="results" class="results-section">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Calculation Summary</h3>
+                <!-- Changed to inline display -->
+                <div class="summary-inline-group">
+                    <strong>Total OT Hours by Type:</strong>
+                    <span id="totalHoursByType" class="text-gray-700"></span>
                 </div>
-                <div>
-                    <p><strong>Total Pay per OT Category:</strong></p>
-                    <ul id="totalPayByCategory" class="list-disc list-inside ml-4 text-gray-700"></ul>
+                <div class="summary-inline-group">
+                    <strong>Total Pay per OT Category:</strong>
+                    <span id="totalPayByCategory" class="text-gray-700"></span>
                 </div>
+                <!-- End of changes for inline display -->
+                <p class="text-xl font-bold text-gray-900 mt-6">Combined OT Pay: <span id="combinedOTPay" class="text-indigo-600">RM 0.00</span></p>
+                <p class="text-xl font-bold text-gray-900 mt-2">Target OT Pay: <span id="targetOTPayDisplay" class="text-green-600">RM 0.00</span></p>
+                <p class="text-xl font-bold mt-2">Difference from Target: <span id="differenceFromTarget">RM 0.00</span></p>
+                <p class="text-xl font-bold mt-2">Total Monthly OT Hours: <span id="totalMonthlyOTHoursDisplay">0.0 hours</span></p>
+                <!-- New: Expected Salary Pay -->
+                <p class="text-xl font-bold text-gray-900 mt-2">Expected Salary Pay: <span id="expectedSalaryPayDisplay" class="text-indigo-600">RM 0.00</span></p>
+                <button id="exportSummaryBtn" class="btn btn-secondary mt-6" aria-label="Export OT summary to text file">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Export Summary
+                </button>
             </div>
-            <p class="text-xl font-bold text-gray-900 mt-6">Combined OT Pay: <span id="combinedOTPay" class="text-indigo-600">RM 0.00</span></p>
-            <p class="text-xl font-bold text-gray-900 mt-2">Target OT Pay: <span id="targetOTPayDisplay" class="text-green-600">RM 0.00</span></p>
-            <p class="text-xl font-bold mt-2">Difference from Target: <span id="differenceFromTarget">RM 0.00</span></p>
-            <p class="text-xl font-bold mt-2">Total Monthly OT Hours: <span id="totalMonthlyOTHoursDisplay">0.0 hours</span></p>
-            <button id="exportSummaryBtn" class="btn btn-secondary mt-6" aria-label="Export OT summary to text file">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-                Export Summary
-            </button>
         </div>
     </div>
 
@@ -531,6 +593,7 @@
             const targetOTPayDisplayElem = document.getElementById('targetOTPayDisplay');
             const differenceFromTargetElem = document.getElementById('differenceFromTarget');
             const totalMonthlyOTHoursDisplay = document.getElementById('totalMonthlyOTHoursDisplay'); // New element
+            const expectedSalaryPayDisplay = document.getElementById('expectedSalaryPayDisplay'); // New element for expected salary
             const exportSummaryBtn = document.getElementById('exportSummaryBtn');
             const userIdDisplay = document.getElementById('userIdDisplay'); // New element for user ID
 
@@ -1030,7 +1093,7 @@
                     () => {
                         clearOTEntries(); // Use the helper function to clear all rows and state
                         addNewManualOTEntry(); // Add back one empty row for convenience
-                        resultsSection.classList.add('hidden'); // Hide results section
+                        // resultsSection.classList.add('hidden'); // No longer hide, it's always visible
                         showMessageBox('Entries Cleared', 'All daily OT entries have been cleared.');
                         calculateAndDisplayResults(); // Recalculate after clearing entries
                     }
@@ -1109,6 +1172,9 @@
                     totalMonthlyOTHours += hours;
                 });
 
+                // Calculate Expected Salary Pay
+                const expectedSalaryPay = basicSalary + combinedOTPay;
+
                 // Monthly cap validation removed as per user request
                 // if (totalMonthlyOTHours > CONFIG.MAX_MONTHLY_OT_HOURS) {
                 //     showMessageBox('Monthly OT Limit Exceeded', `Total OT hours for the planning period (${totalMonthlyOTHours.toFixed(1)}h) exceed the monthly limit of ${CONFIG.MAX_MONTHLY_OT_HOURS} hours.`);
@@ -1116,8 +1182,7 @@
 
 
                 // Display Results for totalHoursByType
-                totalHoursByTypeElem.innerHTML = '';
-                // Use the preferred order for display, including Public Holiday
+                let hoursSummaryHtml = [];
                 const displayOrderForSummary = [
                     'Normal OT (Weekdays)',
                     'Off Day (Saturday)',
@@ -1127,25 +1192,25 @@
                 ];
                 displayOrderForSummary.forEach(type => {
                     if (totalHoursByType[type] > 0) {
-                        const li = document.createElement('li');
-                        li.textContent = `${type}: ${totalHoursByType[type].toFixed(1)} hours`;
-                        totalHoursByTypeElem.appendChild(li);
+                        hoursSummaryHtml.push(`<span class="summary-inline-item">${type}: ${totalHoursByType[type].toFixed(1)}h</span>`);
                     }
                 });
+                totalHoursByTypeElem.innerHTML = hoursSummaryHtml.join('');
 
 
                 // Display Results for totalPayByCategory
-                totalPayByCategoryElem.innerHTML = '';
+                let paySummaryHtml = [];
                 displayOrderForSummary.forEach(type => { // Use the same order
                     if (totalPayByCategory[type] > 0) {
-                        const li = document.createElement('li');
-                        li.textContent = `${type}: ${formatCurrency(totalPayByCategory[type])}`;
-                        totalPayByCategoryElem.appendChild(li);
+                        paySummaryHtml.push(`<span class="summary-inline-item">${type}: ${formatCurrency(totalPayByCategory[type])}</span>`);
                     }
                 });
+                totalPayByCategoryElem.innerHTML = paySummaryHtml.join('');
+
 
                 combinedOTPayElem.textContent = formatCurrency(combinedOTPay);
                 totalMonthlyOTHoursDisplay.textContent = `${totalMonthlyOTHours.toFixed(1)} hours`; // Display total monthly hours
+                expectedSalaryPayDisplay.textContent = formatCurrency(expectedSalaryPay); // Display expected salary pay
 
                 const isTargetOptional = targetOTPay === null || targetOTPay <= 0;
 
@@ -1173,7 +1238,7 @@
                     }
                 }
 
-                resultsSection.classList.remove('hidden'); // Show results section
+                // resultsSection.classList.remove('hidden'); // No longer hide, it's always visible
             }
 
             /**
@@ -1715,7 +1780,7 @@
                 autoAllocateLoading.classList.add('hidden'); // Hide loading indicator
 
                 // Scroll to the results section
-                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); // No longer needed with sticky
             }
 
 
@@ -1797,40 +1862,41 @@
                     totalMonthlyOTHours += hours;
                 });
 
+                const expectedSalaryPay = basicSalary + combinedOTPay; // Calculate for export
+
                 summaryText += `Total OT Hours by Type:\n`;
-                let hasHours = false;
-                const displayOrderForSummary = [
+                let hoursSummaryExport = [];
+                const displayOrderForSummaryExport = [
                     'Normal OT (Weekdays)',
                     'Off Day (Saturday)',
                     'Rest Day (Sunday) — 1st 8h',
                     'Rest Day (Sunday) — after 8h',
                     'Public Holiday'
                 ];
-                displayOrderForSummary.forEach(type => {
+                displayOrderForSummaryExport.forEach(type => {
                     if (totalHoursByType[type] > 0) {
-                        summaryText += `  ${type}: ${totalHoursByType[type].toFixed(1)} hours\n`;
-                        hasHours = true;
+                        hoursSummaryExport.push(`${type}: ${totalHoursByType[type].toFixed(1)}h`);
                     }
                 });
-                if (!hasHours) summaryText += `  N/A\n`;
+                summaryText += `  ${hoursSummaryExport.join(', ')}\n`;
                 summaryText += `\n`;
 
                 summaryText += `Total Pay per OT Category:\n`;
-                let hasPay = false;
-                displayOrderForSummary.forEach(type => {
+                let paySummaryExport = [];
+                displayOrderForSummaryExport.forEach(type => {
                     if (totalPayByCategory[type] > 0) {
                         totalPayByCategory[type] = parseFloat(totalPayByCategory[type].toFixed(2)); // Round to 2 decimal places for display
-                        summaryText += `  ${type}: ${formatCurrency(totalPayByCategory[type])}\n`;
-                        hasPay = true;
+                        paySummaryExport.push(`${type}: ${formatCurrency(totalPayByCategory[type])}`);
                     }
                 });
-                if (!hasPay) summaryText += `  N/A\n`;
+                summaryText += `  ${paySummaryExport.join(', ')}\n`;
                 summaryText += `\n`;
 
                 summaryText += `Combined OT Pay: ${formatCurrency(combinedOTPay)}\n`;
                 const difference = combinedOTPay - (targetOTPay === null ? 0 : targetOTPay);
                 summaryText += `Difference from Target: ${targetOTPay === null ? 'N/A (No target set)' : formatCurrency(difference)}\n`;
                 summaryText += `Total Monthly OT Hours: ${totalMonthlyOTHours.toFixed(1)} hours (Max: ${CONFIG.MAX_MONTHLY_OT_HOURS} hours)\n`;
+                summaryText += `Expected Salary Pay: ${formatCurrency(expectedSalaryPay)}\n`; // Add to export
                 summaryText += `\n--- End of Summary ---`;
 
                 const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
