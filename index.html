@@ -769,7 +769,7 @@
             WORKING_DAYS_MONTHLY: 26,
             STANDARD_WORK_HOURS_DAILY: 8,
             MAX_DAILY_OT_HOURS: 8, // Max 8 hours OT per day as per typical regulations
-            MAX_MONTHLY_OT_HOURS: 104, // Max 104 hours OT per month as per typical regulations
+            // MAX_MONTHLY_OT_HOURS: 104, // Max 104 hours OT per month as per typical regulations - REMOVED AS PER USER REQUEST
             ALLOCATION_PRECISION: 0.01, // Small value to handle floating point comparisons
             OT_MULTIPLIERS: { ...DEFAULT_OT_MULTIPLIERS }, // Current multipliers, can be changed by user
             // Define preferred allocation ranges for auto-allocation based on workload presets
@@ -1938,7 +1938,7 @@
             contentElement.style.maxHeight = contentElement.scrollHeight + "px";
             // Force reflow to ensure the browser registers the height before transition
             contentElement.offsetWidth;
-            contentContent.classList.add('collapsed'); // Corrected from contentContent.classList.add
+            contentElement.classList.add('collapsed'); // Corrected from contentContent.classList.add
             if (iconElement) iconElement.classList.remove('rotated');
 
             // Clear max-height after transition to allow it to be re-calculated if expanded again
@@ -2359,8 +2359,9 @@
             summaryText += `Combined OT Pay: ${formatCurrency(combinedOTPay)}\n`;
             const difference = combinedOTPay - (targetOTPay === null ? 0 : targetOTPay);
             summaryText += `Difference from Target: ${targetOTPay === null ? 'N/A (No target set)' : formatCurrency(difference)}\n`;
-            summaryText += `Total Monthly OT Hours: ${totalMonthlyOTHours.toFixed(1)} hours (Max: ${CONFIG.MAX_MONTHLY_OT_HOURS} hours)\n`;
-            summaryText += `Expected Salary Pay: ${formatCurrency(expectedSalaryPay)}\n`; // Add to export
+            summaryText += `Total Monthly OT Hours: ${totalMonthlyOTHours.toFixed(1)} hours\n`; // Removed max hours
+            summaryText += `Expected Salary Pay (Calculated): ${formatCurrency(expectedSalaryPay)}\n`; // Add calculated expected salary
+            summaryText += `Expected Net Salary (Provided): RM 8662.14\n`; // Add provided expected net salary
             summaryText += `\n--- End of Summary ---`;
 
             const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
