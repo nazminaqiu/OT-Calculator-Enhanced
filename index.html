@@ -1365,18 +1365,16 @@
             const originalEntry = { ...otEntries[index] }; // Clone for potential revert
 
             if (field === 'date') {
-                // Check for duplicate date and type combination
                 const newDate = value;
-                const newType = getDefaultOTTypeForDate(newDate); // Get the auto-adjusted type for the new date
-
+                // Check for duplicate date across ALL entries (excluding the current one being edited)
                 const isDuplicate = otEntries.some(entry =>
-                    entry.id !== id && entry.date === newDate && entry.type === newType
+                    entry.id !== id && entry.date === newDate
                 );
 
                 if (isDuplicate) {
                     showMessageBox(
-                        'Duplicate Entry Warning',
-                        `An OT entry of type "${newType}" already exists for ${newDate}. Please choose a different date or adjust the existing entry.`,
+                        'Duplicate Date Warning',
+                        `An OT entry already exists for ${newDate}. Each date can only have one OT entry. Please choose a different date or adjust the existing entry.`,
                         'info'
                     );
                     // Revert the date input in the UI
@@ -1385,7 +1383,7 @@
                 }
 
                 otEntries[index].date = newDate;
-                otEntries[index].type = newType; // Auto-adjust type based on new date
+                otEntries[index].type = getDefaultOTTypeForDate(newDate); // Auto-adjust type based on new date
                 console.log(`Updated entry ${id}: date=${otEntries[index].date}, type=${otEntries[index].type}`);
 
             } else {
