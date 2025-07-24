@@ -769,7 +769,6 @@
             WORKING_DAYS_MONTHLY: 26,
             STANDARD_WORK_HOURS_DAILY: 8,
             MAX_DAILY_OT_HOURS: 8, // Max 8 hours OT per day as per typical regulations
-            // MAX_MONTHLY_OT_HOURS: 104, // Max 104 hours OT per month as per typical regulations - REMOVED AS PER USER REQUEST
             ALLOCATION_PRECISION: 0.01, // Small value to handle floating point comparisons
             OT_MULTIPLIERS: { ...DEFAULT_OT_MULTIPLIERS }, // Current multipliers, can be changed by user
             // Define preferred allocation ranges for auto-allocation based on workload presets
@@ -2165,12 +2164,6 @@
                     currentAllocatedPay = fillRemainingGap(availableDays, targetOTPay, currentAllocatedPay, hourlyRate, hoursAllocatedPerDay, sundayFirst8hAllocated);
                 }
 
-                // Monthly cap validation removed as per user request
-                // currentAllocatedMonthlyHours = otEntries.reduce((sum, entry) => sum + entry.hours, 0);
-                // if (currentAllocatedMonthlyHours > CONFIG.MAX_MONTHLY_OT_HOURS) {
-                //     showMessageBox('Monthly OT Limit Exceeded', `Auto-allocation resulted in ${currentAllocatedMonthlyHours.toFixed(1)} hours, exceeding the monthly limit of ${CONFIG.MAX_MONTHLY_OT_HOURS} hours.`);
-                // }
-
                 // Final Check: If target still not met, inform the user
                 if (currentAllocatedPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) {
                     showMessageBox('Target Not Fully Met', `The target OT pay of ${formatCurrency(targetOTPay)} was not fully met (${formatCurrency(currentAllocatedPay)}). You may need to manually add more hours or increase the planning date range.`);
@@ -2222,11 +2215,6 @@
                         }
                     }
                 }
-                // Monthly cap validation removed as per user request
-                // currentAllocatedMonthlyHours = otEntries.reduce((sum, entry) => sum + entry.hours, 0);
-                // if (currentAllocatedMonthlyHours > CONFIG.MAX_MONTHLY_OT_HOURS) {
-                //     showMessageBox('Monthly OT Limit Exceeded', `Auto-allocation resulted in ${currentAllocatedMonthlyHours.toFixed(1)} hours, exceeding the monthly limit of ${CONFIG.MAX_MONTHLY_OT_HOURS} hours. Please adjust manually.`);
-                // }
                 showMessageBox('Workload Allocated', 'Overtime hours have been allocated based on the selected workload preset for all days in the range.');
             }
 
@@ -2269,6 +2257,17 @@
             summaryText += `OT Multipliers Used:\n`;
             for (const type in CONFIG.OT_MULTIPLIERS) {
                 summaryText += `  ${type}: ${CONFIG.OT_MULTIPLIERS[type].toFixed(2)}x\n`;
+            }
+            summaryText += `\n`;
+
+            // Public Holidays Section
+            summaryText += `Public Holidays within Planning Period:\n`;
+            if (publicHolidays.length === 0) {
+                summaryText += `  No public holidays added.\n`;
+            } else {
+                publicHolidays.forEach(date => {
+                    summaryText += `  - ${date}\n`;
+                });
             }
             summaryText += `\n`;
 
