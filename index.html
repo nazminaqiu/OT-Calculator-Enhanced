@@ -220,7 +220,7 @@
             background-color: #d1d5db;
         }
 
-        /* New modal for adding manual OT entry */
+        /* New modal for adding manual OT entry and date range */
         .manual-entry-modal {
             position: fixed;
             top: 0;
@@ -529,7 +529,7 @@
                     <div class="input-group">
                         <label for="startDate">Start Date</label>
                         <div class="flex items-center gap-2">
-                            <input type="date" id="startDate" class="shadow-sm flex-grow">
+                            <input type="date" id="startDate" class="shadow-sm flex-grow" readonly>
                             <button type="button" id="setStartDateTodayBtn" class="btn btn-secondary p-2" aria-label="Set start date to today">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
@@ -540,7 +540,7 @@
                     <div class="input-group">
                         <label for="endDate">End Date</label>
                         <div class="flex items-center gap-2">
-                            <input type="date" id="endDate" class="shadow-sm flex-grow">
+                            <input type="date" id="endDate" class="shadow-sm flex-grow" readonly>
                             <button type="button" id="setEndDateTodayBtn" class="btn btn-secondary p-2" aria-label="Set end date to today">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
@@ -741,6 +741,29 @@
         </div>
     </div>
 
+    <!-- New Date Range Modal HTML -->
+    <div id="dateRangeModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dateRangeModalTitle">
+        <div class="manual-entry-modal-content">
+            <h4 id="dateRangeModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Select OT Planning Date Range</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="input-group">
+                    <label for="startDateModalInput">Start Date</label>
+                    <input type="date" id="startDateModalInput" class="shadow-sm">
+                    <div id="startDateModalError" class="error-message text-left"></div>
+                </div>
+                <div class="input-group">
+                    <label for="endDateModalInput">End Date</label>
+                    <input type="date" id="endDateModalInput" class="shadow-sm">
+                    <div id="endDateModalError" class="error-message text-left"></div>
+                </div>
+            </div>
+            <div class="modal-buttons mt-4">
+                <button id="cancelDateRangeBtn" class="btn btn-cancel">Cancel</button>
+                <button id="confirmDateRangeBtn" class="btn btn-primary">Set Range</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // Firebase SDK imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -811,6 +834,8 @@
         let isAuthReady = false; // Flag to ensure Firestore operations wait for auth
         let manualDatePickerInstance; // Flatpickr instance for manual entry date picker
         let publicHolidayDatePickerInstance; // Flatpickr instance for public holiday date picker
+        let startDateModalPicker; // New: Flatpickr instance for start date in modal
+        let endDateModalPicker;   // New: Flatpickr instance for end date in modal
 
         // --- State Variables ---
         let otEntries = []; // Stores objects like { id, date, hours, type, startTime, endTime, isNew }
@@ -868,6 +893,15 @@
         let manualEntryDateError;
         let confirmManualEntryBtn;
         let cancelManualEntryBtn;
+
+        let dateRangeModal; // New: Date Range Modal
+        let dateRangeModalTitle; // New: Date Range Modal Title
+        let startDateModalInput; // New: Input for start date in modal
+        let endDateModalInput;   // New: Input for end date in modal
+        let startDateModalError; // New: Error for start date in modal
+        let endDateModalError;   // New: Error for end date in modal
+        let confirmDateRangeBtn; // New: Confirm button for date range modal
+        let cancelDateRangeBtn; // New: Cancel button for date range modal
 
         let setStartDateTodayBtn;
         let setEndDateTodayBtn;
@@ -2714,6 +2748,128 @@
         }
 
         /**
+         * Shows the modal for selecting the OT Planning Date Range.
+         */
+        function showDateRangeModal() {
+            // Store the currently focused element before showing the modal
+            window.lastFocusedElement = document.activeElement;
+
+            dateRangeModal.classList.remove('hidden');
+
+            // Clear previous errors
+            startDateModalError.textContent = '';
+            endDateModalError.textContent = '';
+            startDateModalInput.classList.remove('input-error');
+            endDateModalInput.classList.remove('input-error');
+
+            // Initialize or update Flatpickr for start date in modal
+            if (!startDateModalPicker) {
+                startDateModalPicker = window.flatpickr(startDateModalInput, {
+                    dateFormat: "Y-m-d",
+                    onChange: function(selectedDates, dateStr, instance) {
+                        // When start date changes, update minDate for end date picker
+                        endDateModalPicker.set('minDate', dateStr);
+                        startDateModalError.textContent = '';
+                        startDateModalInput.classList.remove('input-error');
+                    }
+                });
+            }
+            // Initialize or update Flatpickr for end date in modal
+            if (!endDateModalPicker) {
+                endDateModalPicker = window.flatpickr(endDateModalInput, {
+                    dateFormat: "Y-m-d",
+                    onChange: function(selectedDates, dateStr, instance) {
+                        // When end date changes, update maxDate for start date picker
+                        startDateModalPicker.set('maxDate', dateStr);
+                        endDateModalError.textContent = '';
+                        endDateModalInput.classList.remove('input-error');
+                    }
+                });
+            }
+
+            // Set default dates for modal pickers based on current main inputs
+            if (startDateInput.value) {
+                startDateModalPicker.setDate(startDateInput.value, false);
+            } else {
+                startDateModalPicker.clear();
+            }
+            if (endDateInput.value) {
+                endDateModalPicker.setDate(endDateInput.value, false);
+            } else {
+                endDateModalPicker.clear();
+            }
+
+            // Ensure min/max date constraints are applied correctly on open
+            if (startDateModalInput.value) {
+                endDateModalPicker.set('minDate', startDateModalInput.value);
+            } else {
+                endDateModalPicker.set('minDate', null); // No min if start date is empty
+            }
+            if (endDateModalInput.value) {
+                startDateModalPicker.set('maxDate', endDateModalInput.value);
+            } else {
+                startDateModalPicker.set('maxDate', null); // No max if end date is empty
+            }
+
+            startDateModalInput.focus(); // Focus the first input in the modal
+        }
+
+        /**
+         * Hides the date range modal.
+         */
+        function hideDateRangeModal() {
+            dateRangeModal.classList.add('hidden');
+            // Return focus to the element that triggered the modal
+            if (window.lastFocusedElement) {
+                window.lastFocusedElement.focus();
+            }
+        }
+
+        /**
+         * Handles confirming the date range selection from the modal.
+         */
+        function handleConfirmDateRange() {
+            const newStartDate = startDateModalInput.value;
+            const newEndDate = endDateModalInput.value;
+
+            startDateModalError.textContent = '';
+            endDateModalError.textContent = '';
+            startDateModalInput.classList.remove('input-error');
+            endDateModalInput.classList.remove('input-error');
+
+            if (!newStartDate) {
+                startDateModalError.textContent = 'Please select a start date.';
+                startDateModalInput.classList.add('input-error');
+                return;
+            }
+            if (!newEndDate) {
+                endDateModalError.textContent = 'Please select an end date.';
+                endDateModalInput.classList.add('input-error');
+                return;
+            }
+
+            if (new Date(newStartDate) > new Date(newEndDate)) {
+                startDateModalError.textContent = 'Start Date cannot be after End Date.';
+                startDateModalInput.classList.add('input-error');
+                endDateModalInput.classList.add('input-error');
+                return;
+            }
+
+            startDateInput.value = newStartDate;
+            endDateInput.value = newEndDate;
+
+            // Manually trigger change events on the hidden inputs to update everything
+            const startDateChangeEvent = new Event('change');
+            startDateInput.dispatchEvent(startDateChangeEvent);
+
+            const endDateChangeEvent = new Event('change');
+            endDateInput.dispatchEvent(endDateChangeEvent);
+
+            hideDateRangeModal();
+            showMessageBox('Date Range Set', `OT Planning Date Range set from ${newStartDate} to ${newEndDate}.`);
+        }
+
+        /**
          * Updates the Flatpickr instance for the public holiday date picker.
          * This function is called when the date range changes.
          */
@@ -2728,7 +2884,12 @@
                 if (isRangeValid) {
                     publicHolidayDatePickerInstance.set('minDate', startDate);
                     publicHolidayDatePickerInstance.set('maxDate', endDate);
-                    publicHolidayDatePickerInstance.setDate(publicHolidayDateInput.value); // Keep current date if valid
+                    // Only set the date if the current value is within the new valid range
+                    if (publicHolidayDateInput.value && new Date(publicHolidayDateInput.value) >= new Date(startDate) && new Date(publicHolidayDateInput.value) <= new Date(endDate)) {
+                        publicHolidayDatePickerInstance.setDate(publicHolidayDateInput.value);
+                    } else {
+                        publicHolidayDatePickerInstance.clear(); // Clear if outside new range
+                    }
                     publicHolidayDatePickerInstance.redraw();
                     publicHolidayDateInput.disabled = false;
                     setPublicHolidayTodayBtn.disabled = false;
@@ -2800,6 +2961,15 @@
             confirmManualEntryBtn = document.getElementById('confirmManualEntryBtn');
             cancelManualEntryBtn = document.getElementById('cancelManualEntryBtn');
 
+            dateRangeModal = document.getElementById('dateRangeModal'); // New: Assign modal
+            dateRangeModalTitle = document.getElementById('dateRangeModalTitle'); // New: Assign title
+            startDateModalInput = document.getElementById('startDateModalInput'); // New: Assign input
+            endDateModalInput = document.getElementById('endDateModalInput');   // New: Assign input
+            startDateModalError = document.getElementById('startDateModalError'); // New: Error for start date in modal
+            endDateModalError = document.getElementById('endDateModalError');   // New: Error for end date in modal
+            confirmDateRangeBtn = document.getElementById('confirmDateRangeBtn'); // New: Assign confirm button
+            cancelDateRangeBtn = document.getElementById('cancelDateRangeBtn'); // New: Assign cancel button
+
             setStartDateTodayBtn = document.getElementById('setStartDateTodayBtn');
             setEndDateTodayBtn = document.getElementById('setEndDateTodayBtn');
             setPublicHolidayTodayBtn = document.getElementById('setPublicHolidayTodayBtn');
@@ -2854,6 +3024,12 @@
             // --- Event Listeners ---
             basicSalaryInput.addEventListener('input', calculateAndDisplayResults); // Live update for basic salary
             customTargetOTPayInput.addEventListener('input', calculateAndDisplayResults); // Live update for custom target pay
+
+            // Date Range Inputs (now trigger modal)
+            startDateInput.addEventListener('click', showDateRangeModal);
+            endDateInput.addEventListener('click', showDateRangeModal);
+
+            // These listeners are now triggered by the modal's confirm action
             startDateInput.addEventListener('change', () => {
                 calculateAndDisplayResults();
                 updateManualEntryDatePicker(); // Update OT date picker constraints
@@ -2890,15 +3066,13 @@
             // "Today" button listeners
             setStartDateTodayBtn.addEventListener('click', () => {
                 startDateInput.value = getTodayDateString();
-                calculateAndDisplayResults();
-                updateManualEntryDatePicker(); // Update OT date picker constraints
-                updatePublicHolidayDatePicker(); // Update Public Holiday date picker constraints
+                // Manually trigger change event to update dependencies
+                startDateInput.dispatchEvent(new Event('change'));
             });
             setEndDateTodayBtn.addEventListener('click', () => {
                 endDateInput.value = getTodayDateString();
-                calculateAndDisplayResults();
-                updateManualEntryDatePicker(); // Update OT date picker constraints
-                updatePublicHolidayDatePicker(); // Update Public Holiday date picker constraints
+                // Manually trigger change event to update dependencies
+                endDateInput.dispatchEvent(new Event('change'));
             });
             setPublicHolidayTodayBtn.addEventListener('click', () => {
                 publicHolidayDateInput.value = getTodayDateString();
@@ -2927,6 +3101,11 @@
             addOTEntryBtn.addEventListener('click', showAddEntryModal);
             confirmManualEntryBtn.addEventListener('click', handleConfirmManualEntry);
             cancelManualEntryBtn.addEventListener('click', hideAddEntryModal);
+
+            // New: Event listeners for date range modal buttons
+            confirmDateRangeBtn.addEventListener('click', handleConfirmDateRange);
+            cancelDateRangeBtn.addEventListener('click', hideDateRangeModal);
+
 
             // Initial Setup (handled by onAuthStateChanged calling loadOTEntries)
             populateTargetOTPayDropdown(); // Populate dropdown on load
