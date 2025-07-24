@@ -1956,10 +1956,19 @@
          */
         function addPublicHoliday() {
             const date = publicHolidayDateInput.value;
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+
             if (!date) {
                 showMessageBox('Input Error', 'Please select a date for the public holiday.');
                 return;
             }
+
+            if (!startDate || !endDate || new Date(date) < new Date(startDate) || new Date(date) > new Date(endDate)) {
+                showMessageBox('Date Range Error', `Public Holiday date must be within the OT Planning Date Range (${startDate} to ${endDate}).`);
+                return;
+            }
+
             if (publicHolidays.includes(date)) {
                 showMessageBox('Duplicate Entry', `${date} is already in the public holidays list.`);
                 return;
@@ -2260,16 +2269,16 @@
             }
             summaryText += `\n`;
 
-            // Public Holidays Section
-            summaryText += `Public Holidays within Planning Period:\n`;
-            if (publicHolidays.length === 0) {
-                summaryText += `  No public holidays added.\n`;
-            } else {
-                publicHolidays.forEach(date => {
-                    summaryText += `  - ${date}\n`;
-                });
-            }
-            summaryText += `\n`;
+            // Public Holidays Section - REMOVED AS PER USER REQUEST
+            // summaryText += `Public Holidays within Planning Period:\n`;
+            // if (publicHolidays.length === 0) {
+            //     summaryText += `  No public holidays added.\n`;
+            // } else {
+            //     publicHolidays.forEach(date => {
+            //         summaryText += `  - ${date}\n`;
+            //     });
+            // }
+            // summaryText += `\n`;
 
             summaryText += `Daily OT Entries:\n`;
             if (otEntries.length === 0) {
