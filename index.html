@@ -412,6 +412,34 @@
             border-radius: 8px;
             margin-top: 15px;
         }
+
+        /* Styles for clear input button */
+        .input-with-clear {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-with-clear input {
+            padding-right: 36px; /* Make space for the button */
+        }
+        .clear-input-btn {
+            position: absolute;
+            right: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9ca3af; /* Gray-400 */
+            padding: 4px;
+            border-radius: 50%;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .clear-input-btn:hover {
+            background-color: #e5e7eb; /* Gray-200 */
+            color: #4b5563; /* Gray-700 */
+        }
     </style>
 </head>
 <body>
@@ -420,13 +448,56 @@
             <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-6">OT Calculator</h2>
             <div id="userIdDisplay" class="hidden"></div>
 
+            <!-- How to Use Section (Collapsible) -->
+            <div class="bg-blue-50 p-6 rounded-xl border border-blue-200 mb-6">
+                <div class="collapsible-header" data-target="howToUseContent">
+                    <h3 class="text-xl font-bold text-blue-800">How to Use This Calculator</h3>
+                    <svg class="collapsible-icon h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+                <div id="howToUseContent" class="collapsible-content">
+                    <ul class="list-disc list-inside text-gray-700 space-y-2">
+                        <li><strong>1. Employee Settings:</strong> Enter your basic monthly salary. Optionally, set a target OT pay.</li>
+                        <li><strong>2. OT Planning Date Range:</strong> Define the period for which you want to calculate or plan your overtime.</li>
+                        <li><strong>3. Public Holiday Management:</strong> Add any public holidays within your planning range. OT on these days will be calculated with a higher multiplier.</li>
+                        <li><strong>4. OT Multiplier Settings:</strong> Adjust the overtime rates for different types of days (weekdays, off days, rest days, public holidays).</li>
+                        <li><strong>5. Daily Overtime Entries:</strong>
+                            <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                                <li>Choose an **Allocation Strategy**:
+                                    <ul>
+                                        <li>**Target-Driven:** The calculator will try to allocate hours to reach your "Target OT Pay" based on your chosen "Workload Preset".</li>
+                                        <li>**Workload-Driven:** Hours will be allocated for all days in your range according to the "Workload Preset", regardless of a specific target pay.</li>
+                                    </ul>
+                                </li>
+                                <li>Select a **Workload Preset** (Light, Moderate, Heavy) to guide auto-allocation.</li>
+                                <li>Click "Auto Allocate Hours" to automatically generate entries.</li>
+                                <li>Click "Add OT Entry" to manually add entries for specific dates.</li>
+                                <li>You can edit hours, dates, and types for each entry.</li>
+                                <li>"Save Data" and "Load Data" buttons allow you to persist your entries.</li>
+                            </ul>
+                        </li>
+                        <li><strong>6. Calculate OT:</strong> Click this button to run the auto-allocation and see your total calculated OT pay and other summary details.</li>
+                        <li><strong>7. Calculation Summary:</strong> Review your total hours, pay per category, combined OT pay, and expected total salary.</li>
+                        <li><strong>8. Export Summary:</strong> Save a text file with a detailed breakdown of your calculations.</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Employee Settings -->
             <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Employee Settings</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="input-group">
                         <label for="basicSalary">Basic Monthly Salary (RM)</label>
-                        <input type="number" id="basicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm">
+                        <div class="input-with-clear">
+                            <input type="number" id="basicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm">
+                            <button type="button" class="clear-input-btn" aria-label="Clear Basic Monthly Salary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="input-group">
                         <label for="targetOTPaySelect">Target OT Pay (RM) (Optional)</label>
@@ -435,7 +506,14 @@
                             <!-- Options will be dynamically added by JavaScript -->
                             <option value="custom">Other (Enter Manually)</option>
                         </select>
-                        <input type="number" id="customTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay">
+                        <div class="input-with-clear">
+                            <input type="number" id="customTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay">
+                            <button type="button" class="clear-input-btn hidden" id="clearCustomTargetOTPayBtn" aria-label="Clear Custom Target OT Pay">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <p class="text-sm text-gray-600 mt-4">
@@ -533,18 +611,20 @@
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Daily Overtime Entries</h3>
                 <div class="input-group mb-4">
                     <label for="allocationStrategy">Allocation Strategy</label>
-                    <select id="allocationStrategy" class="shadow-sm">
+                    <select id="allocationStrategy" class="shadow-sm" aria-describedby="allocationStrategyDescription">
                         <option value="Target-Driven">Target-Driven (using Workload Presets)</option>
                         <option value="Workload-Driven">Workload-Driven (Fill All Days)</option>
                     </select>
+                    <p id="allocationStrategyDescription" class="text-sm text-gray-600 mt-2"></p>
                 </div>
                 <div class="input-group mb-4">
                     <label for="workloadPreset">Workload Preset for Auto Allocation</label>
-                    <select id="workloadPreset" class="shadow-sm">
+                    <select id="workloadPreset" class="shadow-sm" aria-describedby="workloadPresetDescription">
                         <option value="Moderate Workload">Moderate Workload</option>
                         <option value="Light Workload">Light Workload</option>
                         <option value="Heavy Workload">Heavy Workload</option>
                     </select>
+                    <p id="workloadPresetDescription" class="text-sm text-gray-600 mt-2"></p>
                 </div>
                 <!-- Dynamic Workload Preset Details -->
                 <div id="workloadPresetDetails" class="text-sm text-gray-700 mb-4 p-3 bg-gray-100 rounded-md border border-gray-200">
@@ -556,7 +636,7 @@
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
                     </svg>
                     Auto Allocate Hours
-                    <span id="autoAllocateLoading" class="loading-indicator hidden">Allocating...</span>
+                    <span id="autoAllocateLoading" class="loading-indicator hidden" aria-live="polite">Allocating...</span>
                 </button>
                 <div id="otEntriesContainer">
                     <!-- OT entry rows will be added here by JavaScript -->
@@ -583,14 +663,14 @@
                             <path fill-rule="evenodd" d="M18 8H2a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2v-8a2 2 0 00-2-2zM4 13a1 1 0 011-1h10a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3z" clip-rule="evenodd" />
                         </svg>
                         Save Data
-                        <span id="saveDataStatus" class="status-message"></span>
+                        <span id="saveDataStatus" class="status-message" aria-live="polite"></span>
                     </button>
                     <button id="loadDataBtn" class="btn btn-secondary flex-grow" aria-label="Load saved data">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
                         </svg>
                         Load Data
-                        <span id="loadDataStatus" class="status-message"></span>
+                        <span id="loadDataStatus" class="status-message" aria-live="polite"></span>
                     </button>
                 </div>
             </div>
@@ -635,7 +715,7 @@
     </div>
 
     <!-- Message Box HTML -->
-    <div id="messageBox" class="message-box hidden">
+    <div id="messageBox" class="message-box hidden" role="dialog" aria-modal="true" aria-labelledby="messageBoxTitle" aria-describedby="messageBoxContent">
         <h4 id="messageBoxTitle"></h4>
         <p id="messageBoxContent"></p>
         <div class="message-box-buttons">
@@ -646,9 +726,9 @@
     </div>
 
     <!-- New Manual Entry Modal HTML -->
-    <div id="addManualEntryModal" class="manual-entry-modal hidden">
+    <div id="addManualEntryModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="manualEntryModalTitle">
         <div class="manual-entry-modal-content">
-            <h4 class="text-2xl font-bold text-gray-900 mb-4">Add New OT Entry</h4>
+            <h4 id="manualEntryModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Add New OT Entry</h4>
             <div class="input-group">
                 <label for="manualEntryDate">Select Date</label>
                 <input type="date" id="manualEntryDate" class="shadow-sm">
@@ -740,8 +820,10 @@
 
         // --- DOM Elements (declared globally for easier access in functions) ---
         let basicSalaryInput;
+        let clearBasicSalaryBtn; // New: Clear basic salary button
         let targetOTPaySelect;
         let customTargetOTPayInput;
+        let clearCustomTargetOTPayBtn; // New: Clear custom target pay button
         let startDateInput;
         let endDateInput;
         let publicHolidayDateInput;
@@ -750,7 +832,9 @@
         let otMultiplierInputsContainer;
         let resetMultipliersBtn;
         let allocationStrategySelect;
+        let allocationStrategyDescription; // New: Description for allocation strategy
         let workloadPresetSelect;
+        let workloadPresetDescription; // New: Description for workload preset
         let workloadPresetDetails;
         let otEntriesContainer;
         let noEntriesMessage;
@@ -780,6 +864,7 @@
         let messageBoxCancelBtn;
 
         let addManualEntryModal;
+        let manualEntryModalTitle; // New: Title for manual entry modal
         let manualEntryDateInput;
         let manualEntryDateError;
         let confirmManualEntryBtn;
@@ -792,6 +877,7 @@
         let collapsibleHeaders;
         let publicHolidaysContent;
         let otMultiplierContent;
+        let howToUseContent; // New: How to Use content element
 
         let saveDataStatus;
         let loadDataStatus;
@@ -823,17 +909,33 @@
                     if (confirmCallback) {
                         confirmCallback();
                     }
+                    // Return focus to the element that triggered the modal
+                    if (window.lastFocusedElement) {
+                        window.lastFocusedElement.focus();
+                    }
                 };
                 messageBoxCancelBtn.onclick = () => {
                     messageBox.classList.add('hidden');
+                    // Return focus to the element that triggered the modal
+                    if (window.lastFocusedElement) {
+                        window.lastFocusedElement.focus();
+                    }
                 };
             } else { // 'info' type
                 messageBoxCloseBtn.classList.remove('hidden');
                 messageBoxCloseBtn.onclick = () => {
                     messageBox.classList.add('hidden');
+                    // Return focus to the element that triggered the modal
+                    if (window.lastFocusedElement) {
+                        window.lastFocusedElement.focus();
+                    }
                 };
             }
             messageBox.classList.remove('hidden');
+            // Store the currently focused element before showing the modal
+            window.lastFocusedElement = document.activeElement;
+            // Focus the first interactive element in the modal
+            messageBoxConfirmBtn.focus();
         }
 
         /**
@@ -845,9 +947,12 @@
         function showStatusMessage(statusElement, message, type) {
             statusElement.textContent = message;
             statusElement.className = `status-message show ${type}`;
+            // For accessibility, ensure the message is announced if it's dynamic status
+            statusElement.setAttribute('aria-live', 'polite');
             if (type !== 'loading') {
                 setTimeout(() => {
                     statusElement.classList.remove('show');
+                    statusElement.removeAttribute('aria-live'); // Remove aria-live when hidden
                 }, 2000); // Hide after 2 seconds for success/error
             }
         }
@@ -872,14 +977,16 @@
 
         /**
          * Handles the change event for the target OT pay dropdown.
-         * Shows/hides the custom input field.
+         * Shows/hides the custom input field and its clear button.
          */
         function handleTargetOTPayChange() {
             if (targetOTPaySelect.value === 'custom') {
                 customTargetOTPayInput.classList.remove('hidden');
+                clearCustomTargetOTPayBtn.classList.remove('hidden');
                 customTargetOTPayInput.focus();
             } else {
                 customTargetOTPayInput.classList.add('hidden');
+                clearCustomTargetOTPayBtn.classList.add('hidden');
                 customTargetOTPayInput.value = ''; // Clear custom input when not in use
             }
             calculateAndDisplayResults(); // Recalculate on target change
@@ -1766,6 +1873,21 @@
             });
             html += `</ul>`;
             workloadPresetDetails.innerHTML = html;
+
+            // Update the workload preset description
+            workloadPresetDescription.textContent = `This preset suggests daily OT hours for different day types to guide auto-allocation.`;
+        }
+
+        /**
+         * Updates the display of allocation strategy description.
+         */
+        function updateAllocationStrategyDisplay() {
+            const strategy = allocationStrategySelect.value;
+            if (strategy === 'Target-Driven') {
+                allocationStrategyDescription.textContent = 'The calculator will try to allocate hours to reach your "Target OT Pay" based on your chosen "Workload Preset".';
+            } else if (strategy === 'Workload-Driven') {
+                allocationStrategyDescription.textContent = 'Hours will be allocated for all days in your range according to the "Workload Preset", regardless of a specific target pay.';
+            }
         }
 
         /**
@@ -1956,6 +2078,7 @@
          */
         async function autoAllocateHours() {
             autoAllocateLoading.classList.remove('hidden'); // Show loading indicator
+            autoAllocateLoading.setAttribute('aria-live', 'polite'); // Announce loading
 
             const basicSalary = parseFloat(basicSalaryInput.value);
             const targetOTPay = getTargetOTPayValue(); // Get value using new helper
@@ -1968,16 +2091,19 @@
             if (isNaN(basicSalary) || basicSalary <= 0) {
                 showMessageBox('Input Error', 'Please enter a valid Basic Monthly Salary for auto-allocation.');
                 autoAllocateLoading.classList.add('hidden');
+                autoAllocateLoading.removeAttribute('aria-live');
                 return;
             }
             if (!startDate || !endDate) {
                 showMessageBox('Input Error', 'Please select both Start and End Dates for the planning range.');
                 autoAllocateLoading.classList.add('hidden');
+                autoAllocateLoading.removeAttribute('aria-live');
                 return;
             }
             if (new Date(startDate) > new Date(endDate)) {
                 showMessageBox('Input Error', 'Start Date cannot be after End Date.');
                 autoAllocateLoading.classList.add('hidden');
+                autoAllocateLoading.removeAttribute('aria-live');
                 return;
             }
 
@@ -2012,6 +2138,7 @@
                 if (!isTargetProvided) {
                     showMessageBox('Input Error', 'Please enter a valid Target OT Pay (> RM0) for Target-Driven allocation, or select "Workload-Driven" strategy.');
                     autoAllocateLoading.classList.add('hidden');
+                    autoAllocateLoading.removeAttribute('aria-live');
                     return;
                 }
                 // --- Target-based Allocation ---
@@ -2098,6 +2225,7 @@
             renderOTEntries(); // Re-render the UI based on the sorted and time-calculated otEntries array
             calculateAndDisplayResults(); // Update results after auto-allocation
             autoAllocateLoading.classList.add('hidden'); // Hide loading indicator
+            autoAllocateLoading.removeAttribute('aria-live'); // Remove aria-live when hidden
 
             // Scroll to the results section
             // resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); // No longer needed with sticky
@@ -2305,14 +2433,17 @@
                     if (loadedTargetOTPay === null) {
                         targetOTPaySelect.value = ''; // "No Target"
                         customTargetOTPayInput.classList.add('hidden');
+                        clearCustomTargetOTPayBtn.classList.add('hidden'); // Also hide clear button
                         customTargetOTPayInput.value = '';
                     } else if (PREDEFINED_TARGET_PAYS.includes(loadedTargetOTPay)) {
                         targetOTPaySelect.value = loadedTargetOTPay.toFixed(2);
                         customTargetOTPayInput.classList.add('hidden');
+                        clearCustomTargetOTPayBtn.classList.add('hidden'); // Also hide clear button
                         customTargetOTPayInput.value = '';
                     } else {
                         targetOTPaySelect.value = 'custom'; // "Other (Enter Manually)"
                         customTargetOTPayInput.classList.remove('hidden');
+                        clearCustomTargetOTPayBtn.classList.remove('hidden'); // Show clear button
                         customTargetOTPayInput.value = loadedTargetOTPay.toFixed(2);
                     }
                     
@@ -2362,6 +2493,7 @@
                     allocationStrategySelect.value = 'Target-Driven'; // Default strategy
                     targetOTPaySelect.value = ''; // Default to "No Target"
                     customTargetOTPayInput.classList.add('hidden'); // Ensure custom input is hidden
+                    clearCustomTargetOTPayBtn.classList.add('hidden'); // Ensure clear button is hidden
 
                     // Only add a default entry if otEntries is truly empty (fresh start)
                     if (otEntries.length === 0) {
@@ -2386,6 +2518,7 @@
             } finally {
                 // Ensure workload preset details are updated even if loading fails or no data is found
                 updateWorkloadPresetDetails();
+                updateAllocationStrategyDisplay(); // Also update allocation strategy display
             }
         }
 
@@ -2452,6 +2585,10 @@
             }
 
             addManualEntryModal.classList.remove('hidden');
+            // Store the currently focused element before showing the modal
+            window.lastFocusedElement = document.activeElement;
+            // Focus the first interactive element in the modal
+            manualEntryDateInput.focus();
         }
 
         /**
@@ -2459,6 +2596,10 @@
          */
         function hideAddEntryModal() {
             addManualEntryModal.classList.add('hidden');
+            // Return focus to the element that triggered the modal
+            if (window.lastFocusedElement) {
+                window.lastFocusedElement.focus();
+            }
         }
 
         /**
@@ -2530,8 +2671,10 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // --- DOM Elements Assignment ---
             basicSalaryInput = document.getElementById('basicSalary');
+            clearBasicSalaryBtn = basicSalaryInput.nextElementSibling; // Get the clear button next to basicSalary
             targetOTPaySelect = document.getElementById('targetOTPaySelect');
             customTargetOTPayInput = document.getElementById('customTargetOTPayInput');
+            clearCustomTargetOTPayBtn = document.getElementById('clearCustomTargetOTPayBtn'); // Get the clear button for custom target pay
             startDateInput = document.getElementById('startDate');
             endDateInput = document.getElementById('endDate');
             publicHolidayDateInput = document.getElementById('publicHolidayDate');
@@ -2540,7 +2683,9 @@
             otMultiplierInputsContainer = document.getElementById('otMultiplierInputs');
             resetMultipliersBtn = document.getElementById('resetMultipliersBtn');
             allocationStrategySelect = document.getElementById('allocationStrategy');
+            allocationStrategyDescription = document.getElementById('allocationStrategyDescription'); // Assign new element
             workloadPresetSelect = document.getElementById('workloadPreset');
+            workloadPresetDescription = document.getElementById('workloadPresetDescription'); // Assign new element
             workloadPresetDetails = document.getElementById('workloadPresetDetails');
             otEntriesContainer = document.getElementById('otEntriesContainer');
             noEntriesMessage = document.getElementById('noEntriesMessage');
@@ -2570,6 +2715,7 @@
             messageBoxCancelBtn = document.getElementById('messageBoxCancelBtn');
 
             addManualEntryModal = document.getElementById('addManualEntryModal');
+            manualEntryModalTitle = document.getElementById('manualEntryModalTitle'); // Assign new element
             manualEntryDateInput = document.getElementById('manualEntryDate');
             manualEntryDateError = document.getElementById('manualEntryDateError');
             confirmManualEntryBtn = document.getElementById('confirmManualEntryBtn');
@@ -2582,6 +2728,8 @@
             collapsibleHeaders = document.querySelectorAll('.collapsible-header');
             publicHolidaysContent = document.getElementById('publicHolidaysContent');
             otMultiplierContent = document.getElementById('otMultiplierContent');
+            howToUseContent = document.getElementById('howToUseContent'); // Assign the new element
+
 
             saveDataStatus = document.getElementById('saveDataStatus');
             loadDataStatus = document.getElementById('loadDataStatus');
@@ -2645,9 +2793,20 @@
             saveDataBtn.addEventListener('click', saveOTEntries);
             loadDataBtn.addEventListener('click', () => loadOTEntries(true)); // Pass true to show message box
             workloadPresetSelect.addEventListener('change', updateWorkloadPresetDetails); // Update details on change
+            allocationStrategySelect.addEventListener('change', updateAllocationStrategyDisplay); // New: Update allocation strategy description
             addPublicHolidayDateBtn.addEventListener('click', addPublicHoliday); // Add event listener for public holiday button
             resetMultipliersBtn.addEventListener('click', resetMultipliersToDefault); // Add event listener for reset multipliers
             targetOTPaySelect.addEventListener('change', handleTargetOTPayChange); // Re-added as custom input is back
+
+            // Clear input buttons
+            clearBasicSalaryBtn.addEventListener('click', () => {
+                basicSalaryInput.value = '';
+                calculateAndDisplayResults();
+            });
+            clearCustomTargetOTPayBtn.addEventListener('click', () => {
+                customTargetOTPayInput.value = '';
+                calculateAndDisplayResults();
+            });
 
             // "Today" button listeners
             setStartDateTodayBtn.addEventListener('click', () => {
@@ -2705,8 +2864,13 @@
             // to ensure it's always called after loading, or if loading fails.
 
             // Initialize collapsible sections to be collapsed by default
+            howToUseContent.classList.add('collapsed'); // New: Collapse How to Use by default
             publicHolidaysContent.classList.add('collapsed');
             otMultiplierContent.classList.add('collapsed');
+
+            // Initial call for new UX elements
+            updateAllocationStrategyDisplay();
+            updateWorkloadPresetDetails();
         });
     </script>
 </body>
