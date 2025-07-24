@@ -299,6 +299,44 @@
             color: #4f46e5; /* Darker indigo text */
             font-weight: 500;
         }
+
+        /* Collapsible section styles */
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 0;
+            border-bottom: 1px solid #cbd5e0;
+            margin-bottom: 15px;
+        }
+        .collapsible-header h3 {
+            margin-bottom: 0; /* Override default margin */
+        }
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+        .collapsible-icon {
+            transition: transform 0.3s ease-out;
+        }
+        .collapsible-icon.rotated {
+            transform: rotate(90deg);
+        }
+
+        /* Input validation styles */
+        .input-error {
+            border-color: #ef4444; /* Red border */
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); /* Light red shadow */
+        }
+        .error-message {
+            color: #ef4444; /* Red text */
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -308,7 +346,7 @@
             <div id="userIdDisplay" class="hidden"></div>
 
             <!-- Employee Settings -->
-            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Employee Settings</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="input-group">
@@ -332,52 +370,87 @@
             </div>
 
             <!-- Date Range Container -->
-            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">OT Planning Date Range</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="input-group">
                         <label for="startDate">Start Date</label>
-                        <input type="date" id="startDate" class="shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <input type="date" id="startDate" class="shadow-sm flex-grow">
+                            <button type="button" id="setStartDateTodayBtn" class="btn btn-secondary p-2" aria-label="Set start date to today">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="input-group">
                         <label for="endDate">End Date</label>
-                        <input type="date" id="endDate" class="shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <input type="date" id="endDate" class="shadow-sm flex-grow">
+                            <button type="button" id="setEndDateTodayBtn" class="btn btn-secondary p-2" aria-label="Set end date to today">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Public Holiday Management -->
-            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Public Holiday Management</h3>
-                <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                    <div class="input-group flex-grow">
-                        <label for="publicHolidayDate">Add Public Holiday Date</label>
-                        <input type="date" id="publicHolidayDate" class="shadow-sm">
+            <!-- Public Holiday Management (Collapsible) -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
+                <div class="collapsible-header" data-target="publicHolidaysContent">
+                    <h3 class="text-xl font-bold text-gray-800">Public Holiday Management</h3>
+                    <svg class="collapsible-icon h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+                <div id="publicHolidaysContent" class="collapsible-content">
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <div class="input-group flex-grow">
+                            <label for="publicHolidayDate">Add Public Holiday Date</label>
+                            <div class="flex items-center gap-2">
+                                <input type="date" id="publicHolidayDate" class="shadow-sm flex-grow">
+                                <button type="button" id="setPublicHolidayTodayBtn" class="btn btn-secondary p-2" aria-label="Set public holiday date to today">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <button id="addPublicHolidayBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add Holiday
+                        </button>
                     </div>
-                    <button id="addPublicHolidayBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday">
+                    <ul id="publicHolidaysList" class="list-disc list-inside ml-4 text-gray-700">
+                        <!-- Public holidays will be listed here -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- OT Multiplier Settings (Collapsible) -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
+                <div class="collapsible-header" data-target="otMultiplierContent">
+                    <h3 class="text-xl font-bold text-gray-800">OT Multiplier Settings</h3>
+                    <svg class="collapsible-icon h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+                <div id="otMultiplierContent" class="collapsible-content">
+                    <div id="otMultiplierInputs" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                        <!-- Multiplier inputs will be dynamically generated here -->
+                    </div>
+                    <button id="resetMultipliersBtn" class="btn btn-secondary" aria-label="Reset OT multipliers to default">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
                         </svg>
-                        Add Holiday
+                        Reset to Default Multipliers
                     </button>
                 </div>
-                <ul id="publicHolidaysList" class="list-disc list-inside ml-4 text-gray-700">
-                    <!-- Public holidays will be listed here -->
-                </ul>
-            </div>
-
-            <!-- OT Multiplier Settings -->
-            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">OT Multiplier Settings</h3>
-                <div id="otMultiplierInputs" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
-                    <!-- Multiplier inputs will be dynamically generated here -->
-                </div>
-                <button id="resetMultipliersBtn" class="btn btn-secondary" aria-label="Reset OT multipliers to default">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
-                    </svg>
-                    Reset to Default Multipliers
-                </button>
             </div>
 
             <!-- Daily OT Entries -->
@@ -603,6 +676,14 @@
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
             const messageBoxConfirmBtn = document.getElementById('messageBoxConfirmBtn'); // New confirm button
             const messageBoxCancelBtn = document.getElementById('messageBoxCancelBtn'); // New cancel button
+
+            // Date "Today" buttons
+            const setStartDateTodayBtn = document.getElementById('setStartDateTodayBtn');
+            const setEndDateTodayBtn = document.getElementById('setEndDateTodayBtn');
+            const setPublicHolidayTodayBtn = document.getElementById('setPublicHolidayTodayBtn');
+
+            // Collapsible sections
+            const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
 
             // --- State Variables ---
             let otEntries = []; // Stores objects like { id, date, hours, type, startTime, endTime, isNew }
@@ -959,6 +1040,7 @@
                                 <div class="input-group">
                                     <label for="${entryId}-hours">Hours</label>
                                     <input type="number" id="${entryId}-hours" value="${entry.hours.toFixed(1)}" min="0" step="0.5" class="shadow-sm">
+                                    <div id="${entryId}-hours-error" class="error-message"></div>
                                 </div>
                                 <div class="input-group">
                                     <label for="${entryId}-type">OT Type</label>
@@ -991,8 +1073,18 @@
                             newRow.querySelector(`#${entryId}-date`).addEventListener('change', (e) => {
                                 updateOTEntry(entryId, 'date', e.target.value);
                             });
-                            newRow.querySelector(`#${entryId}-hours`).addEventListener('input', (e) => {
-                                updateOTEntry(entryId, 'hours', parseFloat(e.target.value) || 0);
+                            const hoursInput = newRow.querySelector(`#${entryId}-hours`);
+                            const hoursError = newRow.querySelector(`#${entryId}-hours-error`);
+                            hoursInput.addEventListener('input', (e) => {
+                                const value = parseFloat(e.target.value);
+                                if (isNaN(value) || value < 0) {
+                                    hoursInput.classList.add('input-error');
+                                    hoursError.textContent = 'Hours must be a positive number.';
+                                } else {
+                                    hoursInput.classList.remove('input-error');
+                                    hoursError.textContent = '';
+                                    updateOTEntry(entryId, 'hours', value);
+                                }
                             });
                             newRow.querySelector(`#${entryId}-type`).addEventListener('change', (e) => {
                                 updateOTEntry(entryId, 'type', e.target.value);
@@ -1077,9 +1169,17 @@
              * @param {string} id - The ID of the entry to remove.
              */
             function removeOTEntryRow(id) {
-                otEntries = otEntries.filter(entry => entry.id !== id);
-                renderOTEntries(); // Re-render the entire list after removal
-                calculateAndDisplayResults(); // Recalculate after removing an entry
+                showMessageBox(
+                    'Confirm Removal',
+                    'Are you sure you want to remove this OT entry? This action cannot be undone.',
+                    'confirm',
+                    () => {
+                        otEntries = otEntries.filter(entry => entry.id !== id);
+                        renderOTEntries(); // Re-render the entire list after removal
+                        calculateAndDisplayResults(); // Recalculate after removing an entry
+                        showMessageBox('Entry Removed', 'The OT entry has been removed.');
+                    }
+                );
             }
 
             /**
@@ -1544,11 +1644,19 @@
              * @param {string} dateToRemove - The date string to remove.
              */
             function removePublicHoliday(dateToRemove) {
-                publicHolidays = publicHolidays.filter(date => date !== dateToRemove);
-                renderPublicHolidays();
-                // After removing a public holiday, re-render all OT entries to update their grouping/PH indicator
-                renderOTEntries();
-                calculateAndDisplayResults(); // Recalculate after removing holiday
+                showMessageBox(
+                    'Confirm Removal',
+                    `Are you sure you want to remove ${dateToRemove} from public holidays?`,
+                    'confirm',
+                    () => {
+                        publicHolidays = publicHolidays.filter(date => date !== dateToRemove);
+                        renderPublicHolidays();
+                        // After removing a public holiday, re-render all OT entries to update their grouping/PH indicator
+                        renderOTEntries();
+                        calculateAndDisplayResults(); // Recalculate after removing holiday
+                        showMessageBox('Holiday Removed', `${dateToRemove} has been removed from public holidays.`);
+                    }
+                );
             }
 
             /**
@@ -1625,10 +1733,17 @@
              * Resets OT multipliers to their default values.
              */
             function resetMultipliersToDefault() {
-                Object.assign(CONFIG.OT_MULTIPLIERS, DEFAULT_OT_MULTIPLIERS);
-                renderOTMultiplierInputs(); // Re-render to show default values
-                showMessageBox('Multipliers Reset', 'OT multipliers have been reset to their default values.');
-                calculateAndDisplayResults(); // Recalculate after resetting multipliers
+                showMessageBox(
+                    'Confirm Reset Multipliers',
+                    'Are you sure you want to reset all OT multipliers to their default values?',
+                    'confirm',
+                    () => {
+                        Object.assign(CONFIG.OT_MULTIPLIERS, DEFAULT_OT_MULTIPLIERS);
+                        renderOTMultiplierInputs(); // Re-render to show default values
+                        showMessageBox('Multipliers Reset', 'OT multipliers have been reset to their default values.');
+                        calculateAndDisplayResults(); // Recalculate after resetting multipliers
+                    }
+                );
             }
 
             /**
@@ -2053,12 +2168,48 @@
             resetMultipliersBtn.addEventListener('click', resetMultipliersToDefault); // Add event listener for reset multipliers
             targetOTPaySelect.addEventListener('change', handleTargetOTPayChange); // Re-added as custom input is back
 
+            // "Today" button listeners
+            setStartDateTodayBtn.addEventListener('click', () => {
+                startDateInput.value = getTodayDateString();
+                calculateAndDisplayResults();
+            });
+            setEndDateTodayBtn.addEventListener('click', () => {
+                endDateInput.value = getTodayDateString();
+                calculateAndDisplayResults();
+            });
+            setPublicHolidayTodayBtn.addEventListener('click', () => {
+                publicHolidayDateInput.value = getTodayDateString();
+            });
+
+            // Collapsible section listeners
+            collapsibleHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const targetId = header.dataset.target;
+                    const targetContent = document.getElementById(targetId);
+                    const icon = header.querySelector('.collapsible-icon');
+
+                    if (targetContent.classList.contains('collapsed')) {
+                        targetContent.classList.remove('collapsed');
+                        targetContent.style.maxHeight = targetContent.scrollHeight + "px"; // Set max-height to scrollHeight
+                        icon.classList.add('rotated');
+                    } else {
+                        targetContent.style.maxHeight = null; // Reset max-height to allow transition
+                        targetContent.classList.add('collapsed');
+                        icon.classList.remove('rotated');
+                    }
+                });
+            });
+
             // Initial Setup
             populateTargetOTPayDropdown(); // Populate dropdown on load
             renderOTMultiplierInputs(); // Render default multipliers immediately
             // Data will be loaded via onAuthStateChanged, which will then call other render/update functions.
             // The `updateWorkloadPresetDetails()` is called in `loadOTEntries`'s finally block
             // to ensure it's always called after loading, or if loading fails.
+
+            // Initialize collapsible sections to be collapsed by default
+            document.getElementById('publicHolidaysContent').classList.add('collapsed');
+            document.getElementById('otMultiplierContent').classList.add('collapsed');
         });
     </script>
 </body>
