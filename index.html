@@ -1018,12 +1018,16 @@
                 const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
                 if (isPublicHoliday(dateString)) {
+                    console.log(`Date ${dateString} is a Public Holiday. Setting type to 'Public Holiday'.`);
                     return 'Public Holiday';
                 } else if (dayOfWeek === 0) { // Sunday
+                    console.log(`Date ${dateString} is a Sunday. Setting type to 'Rest Day (Sunday) — 1st 8h'.`);
                     return 'Rest Day (Sunday) — 1st 8h'; // Default to 1st 8h for grouping Sundays
                 } else if (dayOfWeek === 6) { // Saturday
+                    console.log(`Date ${dateString} is a Saturday. Setting type to 'Off Day (Saturday)'.`);
                     return 'Off Day (Saturday)';
                 } else { // Weekday (Monday to Friday)
+                    console.log(`Date ${dateString} is a Weekday. Setting type to 'Normal OT (Weekdays)'.`);
                     return 'Normal OT (Weekdays)';
                 }
             }
@@ -1146,6 +1150,12 @@
                             `;
                             groupSection.appendChild(newRow);
 
+                            // Explicitly set the value of the select element after it's in the DOM
+                            const typeSelect = newRow.querySelector(`#${entryId}-type`);
+                            if (typeSelect) {
+                                typeSelect.value = entry.type;
+                            }
+
                             // Re-attach event listeners
                             newRow.querySelector(`#${entryId}-date`).addEventListener('change', (e) => {
                                 updateOTEntry(entryId, 'date', e.target.value);
@@ -1250,6 +1260,8 @@
 
                     otEntries[index].date = newDate;
                     otEntries[index].type = newType; // Auto-adjust type based on new date
+                    console.log(`Updated entry ${id}: date=${otEntries[index].date}, type=${otEntries[index].type}`);
+
                 } else {
                     otEntries[index][field] = value;
                 }
