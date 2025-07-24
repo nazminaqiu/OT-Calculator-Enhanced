@@ -1937,7 +1937,7 @@
             contentElement.style.maxHeight = contentElement.scrollHeight + "px";
             // Force reflow to ensure the browser registers the height before transition
             contentElement.offsetWidth;
-            contentContent.classList.add('collapsed');
+            contentElement.classList.add('collapsed');
             if (iconElement) iconElement.classList.remove('rotated');
 
             // Clear max-height after transition to allow it to be re-calculated if expanded again
@@ -2403,7 +2403,7 @@
                 setTimeout(() => {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                }, 100); // Small delay, e.g., 100ms
+                }, 250); // Increased delay to 250ms
 
             } catch (error) {
                 console.error("Error during export summary:", error);
@@ -2612,6 +2612,10 @@
                 return !otEntries.some(entry => entry.date === dateString);
             });
 
+            console.log("Available dates for manual entry:", availableDatesForSelection);
+            console.log("Number of available dates:", availableDatesForSelection.length);
+
+
             if (availableDatesForSelection.length === 0) {
                 showMessageBox('No Available Dates', 'All dates in the current planning range already have an OT entry. Please adjust your date range or clear existing entries to add more.');
                 return; // Prevent modal from opening
@@ -2718,6 +2722,8 @@
             const endDate = endDateInput.value;
             const isRangeValid = startDate && endDate && (new Date(startDate) <= new Date(endDate));
 
+            console.log(`[updatePublicHolidayDatePicker] Start Date: ${startDate}, End Date: ${endDate}, Is Range Valid: ${isRangeValid}`);
+
             if (publicHolidayDatePickerInstance) {
                 if (isRangeValid) {
                     publicHolidayDatePickerInstance.set('minDate', startDate);
@@ -2727,12 +2733,16 @@
                     publicHolidayDateInput.disabled = false;
                     setPublicHolidayTodayBtn.disabled = false;
                     addPublicHolidayDateBtn.disabled = false;
+                    console.log("[updatePublicHolidayDatePicker] Public Holiday picker ENABLED.");
                 } else {
                     publicHolidayDatePickerInstance.clear(); // Clear selected date
                     publicHolidayDateInput.disabled = true;
                     setPublicHolidayTodayBtn.disabled = true;
                     addPublicHolidayDateBtn.disabled = true;
+                    console.log("[updatePublicHolidayDatePicker] Public Holiday picker DISABLED.");
                 }
+            } else {
+                console.warn("[updatePublicHolidayDatePicker] Flatpickr instance for public holiday date picker not initialized yet.");
             }
         }
 
