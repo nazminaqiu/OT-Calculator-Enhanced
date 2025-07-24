@@ -564,15 +564,15 @@
                         <div class="input-group flex-grow">
                             <label for="publicHolidayDate">Add Public Holiday Date</label>
                             <div class="flex items-center gap-2">
-                                <input type="date" id="publicHolidayDate" class="shadow-sm flex-grow">
-                                <button type="button" id="setPublicHolidayTodayBtn" class="btn btn-secondary p-2" aria-label="Set public holiday date to today">
+                                <input type="date" id="publicHolidayDate" class="shadow-sm flex-grow" disabled>
+                                <button type="button" id="setPublicHolidayTodayBtn" class="btn btn-secondary p-2" aria-label="Set public holiday date to today" disabled>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <button id="addPublicHolidayDateBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday">
+                        <button id="addPublicHolidayDateBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday" disabled>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
                             </svg>
@@ -997,7 +997,7 @@
          */
         function getTargetOTPayValue() {
             if (targetOTPaySelect.value === 'custom') {
-                const customValue = parseFloat(customTargetOTPayInput.value);
+                const customValue = parseFloat(customTargetOTPay.value);
                 return isNaN(customValue) ? null : customValue;
             } else if (targetOTPaySelect.value === '') {
                 return null;
@@ -1817,7 +1817,7 @@
                     const potentialPay = calculateOT(hourlyRate, hoursToConsider, typeToUse, day.date);
                     if (currentAllocatedPay + potentialPay <= targetOTPay + CONFIG.ALLOCATION_PRECISION) {
                         // FIX: Ensure hoursToConsider is used here
-                        addOrUpdateOTEntry(day.date, hoursToConsider, typeToUse); // Changed `hoursToAllocate` to `hoursToConsider`
+                        addOrUpdateOTEntry(day.date, hoursToConsider, typeToUse); // Changed `typeToUse` to `step.type`
                         currentAllocatedPay += potentialPay;
                         hoursAllocatedPerDay[day.date] += hoursToConsider;
                         if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
@@ -1937,7 +1937,7 @@
             contentElement.style.maxHeight = contentElement.scrollHeight + "px";
             // Force reflow to ensure the browser registers the height before transition
             contentElement.offsetWidth;
-            contentElement.classList.add('collapsed'); // Corrected from contentContent.classList.add
+            contentElement.classList.add('collapsed');
             if (iconElement) iconElement.classList.remove('rotated');
 
             // Clear max-height after transition to allow it to be re-calculated if expanded again
@@ -2269,30 +2269,44 @@
             }
             summaryText += `\n`;
 
-            // Public Holidays Section - REMOVED AS PER USER REQUEST
-            // summaryText += `Public Holidays within Planning Period:\n`;
-            // if (publicHolidays.length === 0) {
-            //     summaryText += `  No public holidays added.\n`;
-            // } else {
-            //     publicHolidays.forEach(date => {
-            //         summaryText += `  - ${date}\n`;
-            //     });
-            // }
-            // summaryText += `\n`;
+            // Group entries by type for export
+            const groupedEntriesForExport = {};
+            const exportOrder = [
+                'Normal OT (Weekdays)',
+                'Off Day (Saturday)',
+                'Rest Day (Sunday) — 1st 8h',
+                'Rest Day (Sunday) — after 8h',
+                'Public Holiday'
+            ];
+
+            // Populate groupedEntriesForExport
+            otEntries.forEach(entry => {
+                const typeToGroup = isPublicHoliday(entry.date) ? 'Public Holiday' : entry.type;
+                if (!groupedEntriesForExport[typeToGroup]) {
+                    groupedEntriesForExport[typeToGroup] = [];
+                }
+                groupedEntriesForExport[typeToGroup].push(entry);
+            });
 
             summaryText += `Daily OT Entries:\n`;
             if (otEntries.length === 0) {
                 summaryText += `  No entries recorded.\n`;
             } else {
-                // Entries are already sorted by date in otEntries array after auto-allocation/manual updates
-                otEntries.forEach(entry => {
-                    summaryText += `  Date: ${entry.date}, Hours: ${entry.hours.toFixed(1)}h, Type: ${entry.type}`;
-                    if (isPublicHoliday(entry.date)) {
-                        summaryText += ` (Public Holiday)`;
-                    }
-                    summaryText += `\n`;
-                    if (entry.startTime && entry.endTime) {
-                        summaryText += `  Suggested Time: ${entry.startTime} - ${entry.endTime}\n`;
+                exportOrder.forEach(typeGroup => {
+                    if (groupedEntriesForExport[typeGroup] && groupedEntriesForExport[typeGroup].length > 0) {
+                        summaryText += `\n--- ${typeGroup} ---\n`;
+                        // Sort entries within each group by date for chronological display within type
+                        groupedEntriesForExport[typeGroup].sort((a, b) => new Date(a.date) - new Date(b.date));
+                        groupedEntriesForExport[typeGroup].forEach(entry => {
+                            summaryText += `  Date: ${entry.date}, Hours: ${entry.hours.toFixed(1)}h, Type: ${entry.type}`;
+                            if (isPublicHoliday(entry.date)) {
+                                summaryText += ` (Public Holiday)`;
+                            }
+                            summaryText += `\n`;
+                            if (entry.startTime && entry.endTime) {
+                                summaryText += `  Suggested Time: ${entry.startTime} - ${entry.endTime}\n`;
+                            }
+                        });
                     }
                 });
             }
@@ -2369,7 +2383,6 @@
             summaryText += `Difference from Target: ${targetOTPay === null ? 'N/A (No target set)' : formatCurrency(difference)}\n`;
             summaryText += `Total Monthly OT Hours: ${totalMonthlyOTHours.toFixed(1)} hours\n`; // Removed max hours
             summaryText += `Expected Salary Pay (Calculated): ${formatCurrency(expectedSalaryPay)}\n`; // Add calculated expected salary
-            summaryText += `Expected Net Salary (Provided): RM 8662.14\n`; // Add provided expected net salary
             summaryText += `\n--- End of Summary ---`;
 
             const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
@@ -2686,10 +2699,25 @@
          * This function is called when the date range changes.
          */
         function updatePublicHolidayDatePicker() {
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+            const isRangeValid = startDate && endDate && (new Date(startDate) <= new Date(endDate));
+
             if (publicHolidayDatePickerInstance) {
-                publicHolidayDatePickerInstance.set('minDate', startDateInput.value);
-                publicHolidayDatePickerInstance.set('maxDate', endDateInput.value);
-                publicHolidayDatePickerInstance.redraw(); // Redraw to apply new min/max rules
+                if (isRangeValid) {
+                    publicHolidayDatePickerInstance.set('minDate', startDate);
+                    publicHolidayDatePickerInstance.set('maxDate', endDate);
+                    publicHolidayDatePickerInstance.setDate(publicHolidayDateInput.value); // Keep current date if valid
+                    publicHolidayDatePickerInstance.redraw();
+                    publicHolidayDateInput.disabled = false;
+                    setPublicHolidayTodayBtn.disabled = false;
+                    addPublicHolidayDateBtn.disabled = false;
+                } else {
+                    publicHolidayDatePickerInstance.clear(); // Clear selected date
+                    publicHolidayDateInput.disabled = true;
+                    setPublicHolidayTodayBtn.disabled = true;
+                    addPublicHolidayDateBtn.disabled = true;
+                }
             }
         }
 
@@ -2897,6 +2925,7 @@
             // Initial call for new UX elements
             updateAllocationStrategyDisplay();
             updateWorkloadPresetDetails();
+            updatePublicHolidayDatePicker(); // Call this initially to set the correct disabled state
         });
     </script>
 </body>
