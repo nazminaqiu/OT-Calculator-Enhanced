@@ -22,7 +22,7 @@
             display: flex;
             flex-direction: column; /* Default to column on small screens */
             gap: 25px;
-            max-width: 1200px; /* Increased max-width to accommodate two columns */
+            max-width: 1200px;
             width: 100%;
         }
         @media (min-width: 1024px) { /* md breakpoint for two columns */
@@ -37,28 +37,32 @@
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            flex: 2; /* Takes 2/3 of the space */
-            width: 100%; /* Ensure it takes full width in column layout */
+            flex-grow: 1; /* Allow it to grow and take available space */
+            width: 100%; /* Default for smaller screens */
         }
         @media (min-width: 1024px) {
             .form-content {
-                width: auto; /* Let flex handle width */
+                min-width: 600px; /* Ensure main content doesn't get too narrow */
             }
         }
 
         .summary-sidebar {
-            flex: 1; /* Takes 1/3 of the space */
-            width: 100%; /* Ensure it takes full width in column layout */
-            position: sticky; /* Make it sticky */
-            top: 20px; /* Distance from the top when sticky */
-            align-self: flex-start; /* Align to the top of the flex container */
-            max-height: calc(100vh - 40px); /* Max height to fit viewport, considering padding */
-            overflow-y: auto; /* Add scroll if content is too long */
-            padding-bottom: 20px; /* Add some padding at the bottom */
+            background-color: #ffffff; /* Moved from .results-section */
+            padding: 25px; /* Moved from .results-section */
+            border-radius: 15px; /* Moved from .results-section */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Moved from .results-section */
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            width: 100%; /* Default for smaller screens */
+            min-width: 300px; /* Prevent it from becoming too narrow on smaller screens */
+            flex-shrink: 0; /* Prevent sidebar from shrinking */
         }
         @media (min-width: 1024px) {
             .summary-sidebar {
-                width: auto; /* Let flex handle width */
+                width: 350px; /* Fixed width on large screens */
             }
         }
 
@@ -118,10 +122,11 @@
             transform: translateY(-1px);
         }
         .results-section {
-            background-color: #f9fafb; /* Very light gray */
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb; /* Subtle border */
+            /* Styles moved to .summary-sidebar, keeping only internal text styles */
+            /* background-color: #f9fafb; */
+            /* padding: 25px; */
+            /* border-radius: 12px; */
+            /* border: 1px solid #e5e7eb; */
         }
         .results-section h3 {
             font-size: 1.5rem;
@@ -138,12 +143,13 @@
             color: #111827; /* Even darker for emphasis */
         }
         .ot-entry-row {
-            display: grid;
-            grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr 0.1fr; /* Date, Hours, Type, Start Time, End Time, Remove Button */
-            gap: 15px;
-            align-items: center;
+            display: flex; /* Changed to flex */
+            flex-direction: column; /* Stack children vertically */
+            gap: 15px; /* Gap between the main sections (date, times, details) */
+            align-items: stretch; /* Ensure children stretch to fill width */
+
             margin-bottom: 15px;
-            padding: 10px;
+            padding: 15px;
             background-color: #f9fafb;
             border-radius: 8px;
             border: 1px solid #e5e7eb;
@@ -216,9 +222,7 @@
             .form-content, .summary-sidebar {
                 padding: 20px;
             }
-            .ot-entry-row {
-                grid-template-columns: 1fr; /* Stack columns on small screens */
-            }
+            /* .ot-entry-row is already flex-col, so no change needed here */
             .ot-entry-row .remove-btn-container {
                 display: flex;
                 justify-content: flex-end; /* Align remove button to the right */
@@ -1084,58 +1088,65 @@
                         groupedEntries[displayType].forEach(entry => {
                             const entryId = entry.id;
                             const newRow = document.createElement('div');
-                            newRow.classList.add('ot-entry-row');
+                            newRow.classList.add('ot-entry-row', 'flex', 'flex-col', 'gap-4');
                             newRow.setAttribute('data-id', entryId);
 
-                            // Add the 'highlight-new' class if isNew is true
                             if (entry.isNew) {
                                 newRow.classList.add('highlight-new');
-                                // Remove the highlight class after animation
                                 setTimeout(() => {
                                     newRow.classList.remove('highlight-new');
                                 }, 2000);
                             }
 
-                            // The select dropdown still shows the original entry.type
-                            // The (PH Rate Applied) indicator is added if applicable
                             newRow.innerHTML = `
-                                <div class="input-group">
-                                    <label for="${entryId}-date">Date${entry.isNew ? '<span class="new-badge">New</span>' : ''}</label>
-                                    <input type="date" id="${entryId}-date" value="${entry.date}" class="shadow-sm">
+                                <!-- Date and Hours (1st line) -->
+                                <div class="grid grid-cols-2 gap-4 items-end">
+                                    <div class="input-group">
+                                        <label for="${entryId}-date">Date${entry.isNew ? '<span class="new-badge">New</span>' : ''}</label>
+                                        <input type="date" id="${entryId}-date" value="${entry.date}" class="shadow-sm">
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="${entryId}-hours">Hours</label>
+                                        <input type="number" id="${entryId}-hours" value="${entry.hours.toFixed(1)}" min="0" step="0.5" class="shadow-sm">
+                                        <div id="${entryId}-hours-error" class="error-message"></div>
+                                    </div>
                                 </div>
-                                <div class="input-group">
-                                    <label for="${entryId}-hours">Hours</label>
-                                    <input type="number" id="${entryId}-hours" value="${entry.hours.toFixed(1)}" min="0" step="0.5" class="shadow-sm">
-                                    <div id="${entryId}-hours-error" class="error-message"></div>
+
+                                <!-- Start Time & End Time (2nd line) -->
+                                <div class="flex gap-4">
+                                    <div class="input-group flex-1">
+                                        <label for="${entryId}-start-time">Start Time</label>
+                                        <input type="time" id="${entryId}-start-time" value="${entry.startTime}" class="shadow-sm" readonly>
+                                    </div>
+                                    <div class="input-group flex-1">
+                                        <label for="${entryId}-end-time">End Time</label>
+                                        <input type="time" id="${entryId}-end-time" value="${entry.endTime}" class="shadow-sm" readonly>
+                                    </div>
                                 </div>
-                                <div class="input-group">
-                                    <label for="${entryId}-type">OT Type</label>
-                                    <select id="${entryId}-type" class="shadow-sm">
-                                        ${Object.keys(DEFAULT_OT_MULTIPLIERS).map(otType => `
-                                            <option value="${otType}" ${otType === entry.type ? 'selected' : ''}>${otType}</option>
-                                        `).join('')}
-                                    </select>
-                                    ${isPublicHoliday(entry.date) ? '<span class="text-red-500 text-xs ml-1">(PH Rate Applied)</span>' : ''}
-                                </div>
-                                <div class="input-group">
-                                    <label for="${entryId}-start-time">Start Time</label>
-                                    <input type="time" id="${entryId}-start-time" value="${entry.startTime}" class="shadow-sm" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <label for="${entryId}-end-time">End Time</label>
-                                    <input type="time" id="${entryId}-end-time" value="${entry.endTime}" class="shadow-sm" readonly>
-                                </div>
-                                <div class="remove-btn-container">
-                                    <button type="button" class="btn btn-danger btn-sm remove-ot-entry-btn" data-id="${entryId}" aria-label="Remove OT entry for ${entry.date}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
+
+                                <!-- OT Type and Remove Button (3rd line) -->
+                                <div class="grid grid-cols-[1.8fr_auto] gap-4 items-end"> <!-- Adjusted grid for OT Type and Remove -->
+                                    <div class="input-group">
+                                        <label for="${entryId}-type">OT Type</label>
+                                        <select id="${entryId}-type" class="shadow-sm">
+                                            ${Object.keys(DEFAULT_OT_MULTIPLIERS).map(otType => `
+                                                <option value="${otType}" ${otType === entry.type ? 'selected' : ''}>${otType}</option>
+                                            `).join('')}
+                                        </select>
+                                        ${isPublicHoliday(entry.date) ? '<div class="text-red-500 text-xs mt-1">(PH Rate Applied)</div>' : ''}
+                                    </div>
+                                    <div class="remove-btn-container flex justify-end">
+                                        <button type="button" class="btn btn-danger btn-sm remove-ot-entry-btn" data-id="${entryId}" aria-label="Remove OT entry for ${entry.date}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             `;
                             groupSection.appendChild(newRow);
 
-                            // Re-attach event listeners to the newly created elements for granular updates
+                            // Re-attach event listeners
                             newRow.querySelector(`#${entryId}-date`).addEventListener('change', (e) => {
                                 updateOTEntry(entryId, 'date', e.target.value);
                             });
@@ -1376,7 +1387,7 @@
 
                 // Monthly cap validation removed as per user request
                 // if (totalMonthlyOTHours > CONFIG.MAX_MONTHLY_OT_HOURS) {
-                //     showMessageBox('Monthly OT Limit Exceeded', `Total OT hours for the planning period (${totalMonthlyOTHours.toFixed(1)}h) exceed the monthly limit of ${CONFIG.MAX_MONTHLY_OT_HOURS} hours.`);
+                //     showMessageBox('Monthly OT Limit Exceeded', `Auto-allocation resulted in ${totalMonthlyOTHours.toFixed(1)} hours, exceeding the monthly limit of ${CONFIG.MAX_MONTHLY_OT_HOURS} hours.`);
                 // }
 
 
@@ -1974,7 +1985,7 @@
                     // Monthly cap validation removed as per user request
                     // currentAllocatedMonthlyHours = otEntries.reduce((sum, entry) => sum + entry.hours, 0);
                     // if (currentAllocatedMonthlyHours > CONFIG.MAX_MONTHLY_OT_HOURS) {
-                    //     showMessageBox('Monthly OT Limit Exceeded', `Auto-allocation resulted in ${currentAllocatedMonthlyHours.toFixed(1)} hours, exceeding the monthly limit of ${CONFIG.MAX_MONTHLY_OT_HOURS} hours. Please adjust manually.`);
+                    //     showMessageBox('Monthly OT Limit Exceeded', `Auto-allocation resulted in ${currentAllocatedMonthlyHours.toFixed(1)} hours, exceeding the monthly limit of ${CONFIG.MAX_MONTHLY_OT_HOURS} hours.`);
                     // }
 
                     // Final Check: If target still not met, inform the user
