@@ -318,7 +318,7 @@
             transition: max-height 0.3s ease-out;
         }
         .collapsible-content.collapsed {
-            max-height: 0;
+            max-height: 0 !important; /* Use !important to ensure override */
         }
         .collapsible-icon {
             transition: transform 0.3s ease-out;
@@ -336,6 +336,35 @@
             color: #ef4444; /* Red text */
             font-size: 0.85rem;
             margin-top: 4px;
+        }
+
+        /* New styles for loading/success indicators */
+        .status-message {
+            margin-left: 10px;
+            font-size: 0.9em;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .status-message.show {
+            opacity: 1;
+        }
+        .status-message.loading {
+            color: #6366f1; /* Indigo */
+        }
+        .status-message.success {
+            color: #10b981; /* Green */
+        }
+        .status-message.error {
+            color: #ef4444; /* Red */
+        }
+        .no-entries-message {
+            text-align: center;
+            color: #6b7280;
+            padding: 20px;
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            margin-top: 15px;
         }
     </style>
 </head>
@@ -485,6 +514,7 @@
                 </button>
                 <div id="otEntriesContainer">
                     <!-- OT entry rows will be added here by JavaScript -->
+                    <p id="noEntriesMessage" class="no-entries-message hidden">No OT entries yet. Click "Add OT Entry" or "Auto Allocate Hours" to get started!</p>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-4 mt-4">
                     <button id="addOTEntryBtn" class="btn btn-secondary flex-grow" aria-label="Add new OT entry">
@@ -507,12 +537,14 @@
                             <path fill-rule="evenodd" d="M18 8H2a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2v-8a2 2 0 00-2-2zM4 13a1 1 0 011-1h10a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3z" clip-rule="evenodd" />
                         </svg>
                         Save Data
+                        <span id="saveDataStatus" class="status-message"></span>
                     </button>
                     <button id="loadDataBtn" class="btn btn-secondary flex-grow" aria-label="Load saved data">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
                         </svg>
                         Load Data
+                        <span id="loadDataStatus" class="status-message"></span>
                     </button>
                 </div>
             </div>
@@ -652,6 +684,7 @@
             const workloadPresetSelect = document.getElementById('workloadPreset');
             const workloadPresetDetails = document.getElementById('workloadPresetDetails'); // New element for details
             const otEntriesContainer = document.getElementById('otEntriesContainer');
+            const noEntriesMessage = document.getElementById('noEntriesMessage'); // New no entries message
             const addOTEntryBtn = document.getElementById('addOTEntryBtn');
             const autoAllocateBtn = document.getElementById('autoAllocateBtn');
             const autoAllocateLoading = document.getElementById('autoAllocateLoading'); // Loading indicator
@@ -684,6 +717,13 @@
 
             // Collapsible sections
             const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+            const publicHolidaysContent = document.getElementById('publicHolidaysContent');
+            const otMultiplierContent = document.getElementById('otMultiplierContent');
+
+            // Status message elements for Save/Load buttons
+            const saveDataStatus = document.getElementById('saveDataStatus');
+            const loadDataStatus = document.getElementById('loadDataStatus');
+
 
             // --- State Variables ---
             let otEntries = []; // Stores objects like { id, date, hours, type, startTime, endTime, isNew }
@@ -705,7 +745,7 @@
                         userIdDisplay.textContent = `User ID: ${userId}`;
                         userIdDisplay.classList.remove('hidden');
                         console.log("Firebase authenticated. User ID:", userId);
-                        await loadOTEntries(); // Load data once authenticated
+                        await loadOTEntries(false); // Load data once authenticated, don't show message box on initial load
                     } else {
                         // Sign in anonymously if no user is logged in
                         try {
@@ -715,7 +755,7 @@
                             userIdDisplay.textContent = `User ID: ${userId}`;
                             userIdDisplay.classList.remove('hidden');
                             console.log("Signed in anonymously. User ID:", userId);
-                            await loadOTEntries(); // Load data once authenticated
+                            await loadOTEntries(false); // Load data once authenticated, don't show message box on initial load
                         } catch (error) {
                             console.error("Anonymous sign-in failed:", error);
                             showMessageBox('Authentication Error', 'Failed to sign in. Data saving/loading may not work.');
@@ -764,6 +804,22 @@
                     };
                 }
                 messageBox.classList.remove('hidden');
+            }
+
+            /**
+             * Displays a temporary status message next to a button.
+             * @param {HTMLElement} statusElement - The span element to display the status.
+             * @param {string} message - The message to display.
+             * @param {string} type - 'loading', 'success', or 'error'.
+             */
+            function showStatusMessage(statusElement, message, type) {
+                statusElement.textContent = message;
+                statusElement.className = `status-message show ${type}`;
+                if (type !== 'loading') {
+                    setTimeout(() => {
+                        statusElement.classList.remove('show');
+                    }, 2000); // Hide after 2 seconds for success/error
+                }
             }
 
             /**
@@ -944,6 +1000,7 @@
                 otEntries = [];
                 otEntriesContainer.innerHTML = '';
                 entryCounter = 0; // Reset counter when clearing
+                noEntriesMessage.classList.remove('hidden'); // Show no entries message
             }
 
             /**
@@ -973,6 +1030,13 @@
              */
             function renderOTEntries() {
                 otEntriesContainer.innerHTML = ''; // Clear current UI
+
+                if (otEntries.length === 0) {
+                    noEntriesMessage.classList.remove('hidden');
+                    return;
+                } else {
+                    noEntriesMessage.classList.add('hidden');
+                }
 
                 // Augment entries with a displayType for grouping
                 const entriesWithDisplayType = otEntries.map(entry => {
@@ -1229,8 +1293,6 @@
                     'confirm',
                     () => {
                         clearOTEntries(); // Use the helper function to clear all rows and state
-                        // No longer automatically add a new entry here, let the user add manually or auto-allocate
-                        // addNewManualOTEntry(); // Removed this line to prevent auto-adding after clear
                         showMessageBox('Entries Cleared', 'All daily OT entries have been cleared.');
                         calculateAndDisplayResults(); // Recalculate after clearing entries
                     }
@@ -1656,6 +1718,52 @@
             }
 
             /**
+             * Expands a collapsible content section smoothly.
+             * @param {HTMLElement} contentElement - The content div to expand.
+             * @param {HTMLElement} iconElement - The icon element to rotate.
+             */
+            function expandCollapsible(contentElement, iconElement) {
+                contentElement.style.maxHeight = 'none'; // Temporarily set to none to get actual scrollHeight
+                const scrollHeight = contentElement.scrollHeight;
+                contentElement.style.maxHeight = '0'; // Reset to 0 for the transition
+                contentElement.classList.remove('collapsed');
+                // Force reflow to ensure the browser registers the height before transition
+                contentElement.offsetWidth;
+                contentElement.style.maxHeight = scrollHeight + "px";
+                if (iconElement) iconElement.classList.add('rotated');
+
+                // After transition, set max-height to 'none' to allow dynamic content changes
+                contentElement.addEventListener('transitionend', function handler() {
+                    contentElement.style.maxHeight = 'none'; // Use 'none' for auto height after transition
+                    contentElement.removeEventListener('transitionend', handler);
+                }, { once: true }); // Use { once: true } to automatically remove the listener
+            }
+
+            /**
+             * Collapses a collapsible content section smoothly.
+             * @param {HTMLElement} contentElement - The content div to collapse.
+             * @param {HTMLElement} iconElement - The icon element to rotate.
+             */
+            function collapseCollapsible(contentElement, iconElement) {
+                // Set max-height to current scrollHeight before adding 'collapsed'
+                contentElement.style.maxHeight = contentElement.scrollHeight + "px";
+                // Force reflow to ensure the browser registers the height before transition
+                contentElement.offsetWidth;
+                contentElement.classList.add('collapsed');
+                if (iconElement) iconElement.classList.remove('rotated');
+
+                // Clear max-height after transition to allow it to be re-calculated if expanded again
+                contentElement.addEventListener('transitionend', function handler() {
+                    // This check ensures we only clear if it's still collapsed (prevents issues if expanded during transition)
+                    if (contentElement.classList.contains('collapsed')) {
+                        contentElement.style.maxHeight = '0'; // Ensure it stays 0 after transition
+                    }
+                    contentElement.removeEventListener('transitionend', handler);
+                }, { once: true }); // Use { once: true } to automatically remove the listener
+            }
+
+
+            /**
              * Adds a public holiday to the list.
              */
             function addPublicHoliday() {
@@ -1672,20 +1780,13 @@
                 publicHolidays.sort(); // Keep sorted for consistency
                 renderPublicHolidays(); // This should re-render the list
 
-                // --- NEW LOGIC TO EXPAND SECTION IF COLLAPSED ---
-                const publicHolidaysContent = document.getElementById('publicHolidaysContent');
+                // --- FIX: Ensure collapsible section expands correctly using new helper ---
+                const header = document.querySelector('.collapsible-header[data-target="publicHolidaysContent"]');
+                const icon = header ? header.querySelector('.collapsible-icon') : null;
                 if (publicHolidaysContent.classList.contains('collapsed')) {
-                    publicHolidaysContent.classList.remove('collapsed');
-                    // Set max-height to scrollHeight to animate expansion
-                    publicHolidaysContent.style.maxHeight = publicHolidaysContent.scrollHeight + "px";
-                    // Also rotate the icon if it exists
-                    const header = document.querySelector('.collapsible-header[data-target="publicHolidaysContent"]');
-                    if (header) {
-                        const icon = header.querySelector('.collapsible-icon');
-                        if (icon) icon.classList.add('rotated');
-                    }
+                    expandCollapsible(publicHolidaysContent, icon);
                 }
-                // --- END NEW LOGIC ---
+                // --- END FIX ---
 
                 // After adding a public holiday, re-render all OT entries to update their grouping/PH indicator
                 renderOTEntries();
@@ -2086,6 +2187,7 @@
                     showMessageBox('Save Error', 'Authentication not ready. Please try again in a moment.');
                     return;
                 }
+                showStatusMessage(saveDataStatus, 'Saving...', 'loading');
 
                 try {
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -2114,20 +2216,28 @@
                     // Update the local state to reflect that 'isNew' flags are cleared
                     otEntries = cleanedOtEntries;
                     renderOTEntries(); // Re-render to remove "New" badges
-                    showMessageBox('Save Successful', 'Your OT data has been saved!');
+                    showStatusMessage(saveDataStatus, 'Saved!', 'success');
                 } catch (e) {
                     console.error("Error saving document: ", e);
+                    showStatusMessage(saveDataStatus, 'Save Failed!', 'error');
                     showMessageBox('Save Error', 'Failed to save data. Please try again.');
                 }
             }
 
             /**
              * Loads the application data from Firestore.
+             * @param {boolean} showMessageBoxOnSuccess - Whether to show a message box on successful load.
              */
-            async function loadOTEntries() {
+            async function loadOTEntries(showMessageBoxOnSuccess = true) {
                 if (!isAuthReady || !userId) {
                     console.warn("Authentication not ready for loading data.");
+                    if (showMessageBoxOnSuccess) { // Only show error if explicitly requested by button click
+                        showMessageBox('Load Error', 'Authentication not ready. Please try again in a moment.');
+                    }
                     return;
+                }
+                if (showMessageBoxOnSuccess) { // Only show loading if explicitly requested by button click
+                    showStatusMessage(loadDataStatus, 'Loading...', 'loading');
                 }
 
                 try {
@@ -2173,9 +2283,21 @@
                         calculateAndAssignTimes(); // Recalculate times for loaded entries
                         renderOTEntries(); // Render loaded entries
                         renderPublicHolidays(); // Render public holidays
+
+                        // --- NEW: Expand public holidays section if data is loaded ---
+                        if (publicHolidays.length > 0) { // No need to check 'collapsed' here, just expand if there's data
+                            const header = document.querySelector('.collapsible-header[data-target="publicHolidaysContent"]');
+                            const icon = header ? header.querySelector('.collapsible-icon') : null;
+                            expandCollapsible(publicHolidaysContent, icon);
+                        }
+                        // --- END NEW ---
+
                         renderOTMultiplierInputs(); // Render multiplier inputs with loaded values
                         calculateAndDisplayResults(); // Update results based on loaded data
-                        showMessageBox('Load Successful', 'Your OT data has been loaded!');
+                        if (showMessageBoxOnSuccess) {
+                            showStatusMessage(loadDataStatus, 'Loaded!', 'success');
+                            showMessageBox('Load Successful', 'Your OT data has been loaded!');
+                        }
                     } else {
                         console.log("No saved data found for this user. Initializing with default values.");
                         // If no data, initialize with default values for current month and add one entry
@@ -2191,7 +2313,6 @@
                         customTargetOTPayInput.classList.add('hidden'); // Ensure custom input is hidden
 
                         // Only add a default entry if otEntries is truly empty (fresh start)
-                        // This prevents duplicate entry warnings on initial load if no data is found
                         if (otEntries.length === 0) {
                             const newDate = getTodayDateString();
                             const newEntry = {
@@ -2200,7 +2321,6 @@
                                 hours: 0, // Hours are 0 as requested
                                 type: getDefaultOTTypeForDate(newDate),
                                 startTime: '',
-                                val: '', // Changed from val to value to match the HTML input's value attribute
                                 endTime: '',
                                 isNew: true
                             };
@@ -2215,10 +2335,16 @@
                         renderOTMultiplierInputs(); // Render default multipliers
                         renderOTEntries(); // Render the (potentially new) default entry
                         calculateAndDisplayResults(); // Calculate results for the (potentially new) default entry
+                        if (showMessageBoxOnSuccess) {
+                            showStatusMessage(loadDataStatus, 'No saved data found.', 'info');
+                        }
                     }
                 } catch (e) {
                     console.error("Error loading document: ", e);
-                    showMessageBox('Load Error', 'Failed to load data. Please try again.');
+                    if (showMessageBoxOnSuccess) {
+                        showStatusMessage(loadDataStatus, 'Load Failed!', 'error');
+                        showMessageBox('Load Error', 'Failed to load data. Please try again.');
+                    }
                 } finally {
                     // Ensure workload preset details are updated even if loading fails or no data is found
                     updateWorkloadPresetDetails();
@@ -2238,7 +2364,7 @@
             calculateBtn.addEventListener('click', autoAllocateHours); // Changed to call autoAllocateHours
             exportSummaryBtn.addEventListener('click', exportSummary);
             saveDataBtn.addEventListener('click', saveOTEntries);
-            loadDataBtn.addEventListener('click', loadOTEntries); // Corrected this listener
+            loadDataBtn.addEventListener('click', () => loadOTEntries(true)); // Pass true to show message box
             workloadPresetSelect.addEventListener('change', updateWorkloadPresetDetails); // Update details on change
             addPublicHolidayBtn.addEventListener('click', addPublicHoliday); // Add event listener for public holiday button
             resetMultipliersBtn.addEventListener('click', resetMultipliersToDefault); // Add event listener for reset multipliers
@@ -2265,13 +2391,9 @@
                     const icon = header.querySelector('.collapsible-icon');
 
                     if (targetContent.classList.contains('collapsed')) {
-                        targetContent.classList.remove('collapsed');
-                        targetContent.style.maxHeight = targetContent.scrollHeight + "px"; // Set max-height to scrollHeight
-                        icon.classList.add('rotated');
+                        expandCollapsible(targetContent, icon);
                     } else {
-                        targetContent.style.maxHeight = null; // Reset max-height to allow transition
-                        targetContent.classList.add('collapsed');
-                        icon.classList.remove('rotated');
+                        collapseCollapsible(targetContent, icon);
                     }
                 });
             });
@@ -2284,8 +2406,8 @@
             // to ensure it's always called after loading, or if loading fails.
 
             // Initialize collapsible sections to be collapsed by default
-            document.getElementById('publicHolidaysContent').classList.add('collapsed');
-            document.getElementById('otMultiplierContent').classList.add('collapsed');
+            publicHolidaysContent.classList.add('collapsed');
+            otMultiplierContent.classList.add('collapsed');
         });
     </script>
 </body>
