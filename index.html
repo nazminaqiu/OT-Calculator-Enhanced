@@ -1102,6 +1102,9 @@
                                 }, 2000);
                             }
 
+                            // Determine the type that should be selected in the dropdown
+                            const typeToDisplayInDropdown = isPublicHoliday(entry.date) ? 'Public Holiday' : entry.type;
+
                             newRow.innerHTML = `
                                 <!-- Date and Hours (1st line) -->
                                 <div class="grid grid-cols-2 gap-4 items-end">
@@ -1134,10 +1137,10 @@
                                         <label for="${entryId}-type">OT Type</label>
                                         <select id="${entryId}-type" class="shadow-sm">
                                             ${Object.keys(DEFAULT_OT_MULTIPLIERS).map(otType => `
-                                                <option value="${otType}" ${otType === entry.type ? 'selected' : ''}>${otType}</option>
+                                                <option value="${otType}">${otType}</option>
                                             `).join('')}
                                         </select>
-                                        ${isPublicHoliday(entry.date) ? '<div class="text-red-500 text-xs mt-1">(PH Rate Applied)</div>' : ''}
+                                        <!-- Removed the (PH Rate Applied) note as requested -->
                                     </div>
                                     <div class="remove-btn-container flex justify-end">
                                         <button type="button" class="btn btn-danger btn-sm remove-ot-entry-btn" data-id="${entryId}" aria-label="Remove OT entry for ${entry.date}">
@@ -1153,7 +1156,7 @@
                             // Explicitly set the value of the select element after it's in the DOM
                             const typeSelect = newRow.querySelector(`#${entryId}-type`);
                             if (typeSelect) {
-                                typeSelect.value = entry.type;
+                                typeSelect.value = typeToDisplayInDropdown; // Set the value here
                             }
 
                             // Re-attach event listeners
@@ -1589,10 +1592,11 @@
                             const hoursToPreciselyAdd = remainingPayNeeded / (hourlyRate * currentMultiplier);
                             const finalHoursToAdd = Math.min(hoursToPreciselyAdd, hoursToConsider, maxHoursForThisDay);
                             if (finalHoursToAdd > 0) {
-                                addOrUpdateOTEntry(day.date, finalHoursToAdd, typeToUse);
+                                // FIX: Ensure step.type is used here
+                                addOrUpdateOTEntry(day.date, finalHoursToAdd, step.type); // Changed `typeToUse` to `step.type`
                                 currentAllocatedPay = targetOTPay;
                                 hoursAllocatedPerDay[day.date] += finalHoursToAdd;
-                                if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
+                                if (step.type === 'Rest Day (Sunday) — 1st 8h') {
                                     sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + finalHoursToAdd);
                                 }
                             }
@@ -1667,7 +1671,8 @@
 
                         const potentialPay = calculateOT(hourlyRate, hoursToConsider, typeToUse, day.date);
                         if (currentAllocatedPay + potentialPay <= targetOTPay + CONFIG.ALLOCATION_PRECISION) {
-                            addOrUpdateOTEntry(day.date, hoursToConsider, typeToUse);
+                            // FIX: Ensure hoursToConsider is used here
+                            addOrUpdateOTEntry(day.date, hoursToConsider, typeToUse); // Changed `hoursToAllocate` to `hoursToConsider`
                             currentAllocatedPay += potentialPay;
                             hoursAllocatedPerDay[day.date] += hoursToConsider;
                             if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
@@ -1772,7 +1777,7 @@
                 contentElement.style.maxHeight = contentElement.scrollHeight + "px";
                 // Force reflow to ensure the browser registers the height before transition
                 contentElement.offsetWidth;
-                contentElement.classList.add('collapsed');
+                contentContent.classList.add('collapsed');
                 if (iconElement) iconElement.classList.remove('rotated');
 
                 // Clear max-height after transition to allow it to be re-calculated if expanded again
