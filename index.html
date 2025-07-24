@@ -956,7 +956,9 @@
                 const date = new Date(dateString);
                 const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
-                if (dayOfWeek === 0) { // Sunday
+                if (isPublicHoliday(dateString)) {
+                    return 'Public Holiday';
+                } else if (dayOfWeek === 0) { // Sunday
                     return 'Rest Day (Sunday) — 1st 8h'; // Default to 1st 8h for grouping Sundays
                 } else if (dayOfWeek === 6) { // Saturday
                     return 'Off Day (Saturday)';
@@ -1102,11 +1104,23 @@
              * This is for manual "Add OT Entry" button clicks.
              */
             function addNewManualOTEntry() {
+                const newDate = getTodayDateString();
+                // Check for duplicate date when adding a new entry
+                const isDateAlreadyUsed = otEntries.some(entry => entry.date === newDate);
+                if (isDateAlreadyUsed) {
+                    showMessageBox(
+                        'Duplicate Date Warning',
+                        `An OT entry already exists for ${newDate}. Please adjust hours on the existing entry or choose a different date for the new entry.`,
+                        'info'
+                    );
+                    return; // Prevent adding a new entry if date is duplicated
+                }
+
                 const newEntry = {
                     id: `ot-entry-${entryCounter++}`, // Generate a new unique ID
-                    date: getTodayDateString(),
+                    date: newDate,
                     hours: 0,
-                    type: 'Normal OT (Weekdays)',
+                    type: getDefaultOTTypeForDate(newDate), // Auto-set type based on date
                     startTime: '', // Will be calculated by calculateSuggestedTimes
                     endTime: '',    // Will be calculated by calculateSuggestedTimes
                     isNew: true     // Mark as new
@@ -1135,32 +1149,55 @@
              */
             function updateOTEntry(id, field, value) {
                 const index = otEntries.findIndex(entry => entry.id === id);
-                if (index !== -1) {
-                    otEntries[index][field] = value;
-                    // Do NOT set isNew flag here, it's only for newly added entries.
+                if (index === -1) return;
 
-                    // Recalculate times for the updated entry
-                    // Find any preceding entry on the same day to chain times
-                    const entriesOnSameDay = otEntries.filter(e => e.date === otEntries[index].date).sort((a, b) => {
-                        // Simple sort by ID for consistent order if times are not yet set
-                        return parseInt(a.id.split('-')[2]) - parseInt(b.id.split('-')[2]);
-                    });
+                const originalEntry = { ...otEntries[index] }; // Clone for potential revert
 
-                    let prevEndTimeForDay = null;
-                    for (let i = 0; i < entriesOnSameDay.length; i++) {
-                        if (entriesOnSameDay[i].id === id) {
-                            calculateSuggestedTimes(otEntries[index], prevEndTimeForDay);
-                            break;
-                        }
-                        prevEndTimeForDay = entriesOnSameDay[i].endTime;
+                if (field === 'date') {
+                    // Check for duplicate date and type combination
+                    const newDate = value;
+                    const newType = getDefaultOTTypeForDate(newDate); // Get the auto-adjusted type for the new date
+
+                    const isDuplicate = otEntries.some(entry =>
+                        entry.id !== id && entry.date === newDate && entry.type === newType
+                    );
+
+                    if (isDuplicate) {
+                        showMessageBox(
+                            'Duplicate Entry Warning',
+                            `An OT entry of type "${newType}" already exists for ${newDate}. Please choose a different date or adjust the existing entry.`,
+                            'info'
+                        );
+                        // Revert the date input in the UI
+                        document.querySelector(`#${id}-date`).value = originalEntry.date;
+                        return; // Prevent update
                     }
 
-                    // Always re-render the entire list if date or type changed, as this affects grouping
-                    // This is the key change to ensure correct auto-grouping on date change.
-                    renderOTEntries();
-                    
-                    calculateAndDisplayResults(); // Recalculate after any entry update
+                    otEntries[index].date = newDate;
+                    otEntries[index].type = newType; // Auto-adjust type based on new date
+                } else {
+                    otEntries[index][field] = value;
                 }
+
+                // Recalculate times for the updated entry
+                // Find any preceding entry on the same day to chain times
+                const entriesOnSameDay = otEntries.filter(e => e.date === otEntries[index].date).sort((a, b) => {
+                    // Simple sort by ID for consistent order if times are not yet set
+                    return parseInt(a.id.split('-')[2]) - parseInt(b.id.split('-')[2]);
+                });
+
+                let prevEndTimeForDay = null;
+                for (let i = 0; i < entriesOnSameDay.length; i++) {
+                    if (entriesOnSameDay[i].id === id) {
+                        calculateSuggestedTimes(otEntries[index], prevEndTimeForDay);
+                        break;
+                    }
+                    prevEndTimeForDay = entriesOnSameDay[i].endTime;
+                }
+
+                // Always re-render the entire list if date or type changed, as this affects grouping
+                renderOTEntries();
+                calculateAndDisplayResults(); // Recalculate after any entry update
             }
 
 
@@ -1192,8 +1229,8 @@
                     'confirm',
                     () => {
                         clearOTEntries(); // Use the helper function to clear all rows and state
-                        addNewManualOTEntry(); // Add back one empty row for convenience
-                        // resultsSection.classList.add('hidden'); // No longer hide, it's always visible
+                        // No longer automatically add a new entry here, let the user add manually or auto-allocate
+                        // addNewManualOTEntry(); // Removed this line to prevent auto-adding after clear
                         showMessageBox('Entries Cleared', 'All daily OT entries have been cleared.');
                         calculateAndDisplayResults(); // Recalculate after clearing entries
                     }
@@ -1467,10 +1504,10 @@
                             const hoursToPreciselyAdd = remainingPayNeeded / (hourlyRate * currentMultiplier);
                             const finalHoursToAdd = Math.min(hoursToPreciselyAdd, hoursToConsider, maxHoursForThisDay);
                             if (finalHoursToAdd > 0) {
-                                addOrUpdateOTEntry(day.date, finalHoursToAdd, step.type);
+                                addOrUpdateOTEntry(day.date, finalHoursToAdd, typeToUse);
                                 currentAllocatedPay = targetOTPay;
                                 hoursAllocatedPerDay[day.date] += finalHoursToAdd;
-                                if (step.type === 'Rest Day (Sunday) — 1st 8h') {
+                                if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
                                     sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + finalHoursToAdd);
                                 }
                             }
@@ -1633,7 +1670,23 @@
                 }
                 publicHolidays.push(date);
                 publicHolidays.sort(); // Keep sorted for consistency
-                renderPublicHolidays();
+                renderPublicHolidays(); // This should re-render the list
+
+                // --- NEW LOGIC TO EXPAND SECTION IF COLLAPSED ---
+                const publicHolidaysContent = document.getElementById('publicHolidaysContent');
+                if (publicHolidaysContent.classList.contains('collapsed')) {
+                    publicHolidaysContent.classList.remove('collapsed');
+                    // Set max-height to scrollHeight to animate expansion
+                    publicHolidaysContent.style.maxHeight = publicHolidaysContent.scrollHeight + "px";
+                    // Also rotate the icon if it exists
+                    const header = document.querySelector('.collapsible-header[data-target="publicHolidaysContent"]');
+                    if (header) {
+                        const icon = header.querySelector('.collapsible-icon');
+                        if (icon) icon.classList.add('rotated');
+                    }
+                }
+                // --- END NEW LOGIC ---
+
                 // After adding a public holiday, re-render all OT entries to update their grouping/PH indicator
                 renderOTEntries();
                 calculateAndDisplayResults(); // Recalculate after adding holiday
@@ -2124,8 +2177,8 @@
                         calculateAndDisplayResults(); // Update results based on loaded data
                         showMessageBox('Load Successful', 'Your OT data has been loaded!');
                     } else {
-                        console.log("No saved data found for this user.");
-                        // If no data, initialize with default values for current month
+                        console.log("No saved data found for this user. Initializing with default values.");
+                        // If no data, initialize with default values for current month and add one entry
                         const today = new Date();
                         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
                         const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -2136,9 +2189,32 @@
                         allocationStrategySelect.value = 'Target-Driven'; // Default strategy
                         targetOTPaySelect.value = ''; // Default to "No Target"
                         customTargetOTPayInput.classList.add('hidden'); // Ensure custom input is hidden
-                        addNewManualOTEntry(); // Add one default entry
+
+                        // Only add a default entry if otEntries is truly empty (fresh start)
+                        // This prevents duplicate entry warnings on initial load if no data is found
+                        if (otEntries.length === 0) {
+                            const newDate = getTodayDateString();
+                            const newEntry = {
+                                id: `ot-entry-${entryCounter++}`,
+                                date: newDate,
+                                hours: 0, // Hours are 0 as requested
+                                type: getDefaultOTTypeForDate(newDate),
+                                startTime: '',
+                                val: '', // Changed from val to value to match the HTML input's value attribute
+                                endTime: '',
+                                isNew: true
+                            };
+                            calculateSuggestedTimes(newEntry);
+                            otEntries.push(newEntry);
+                            console.log("Added initial default OT entry on fresh load.");
+                        } else {
+                            console.log("Skipping initial default OT entry as otEntries is not empty.");
+                        }
+                        
                         renderPublicHolidays(); // Render empty public holidays list
                         renderOTMultiplierInputs(); // Render default multipliers
+                        renderOTEntries(); // Render the (potentially new) default entry
+                        calculateAndDisplayResults(); // Calculate results for the (potentially new) default entry
                     }
                 } catch (e) {
                     console.error("Error loading document: ", e);
@@ -2162,7 +2238,7 @@
             calculateBtn.addEventListener('click', autoAllocateHours); // Changed to call autoAllocateHours
             exportSummaryBtn.addEventListener('click', exportSummary);
             saveDataBtn.addEventListener('click', saveOTEntries);
-            loadDataBtn.addEventListener('click', loadOTEntries); 
+            loadDataBtn.addEventListener('click', loadOTEntries); // Corrected this listener
             workloadPresetSelect.addEventListener('change', updateWorkloadPresetDetails); // Update details on change
             addPublicHolidayBtn.addEventListener('click', addPublicHoliday); // Add event listener for public holiday button
             resetMultipliersBtn.addEventListener('click', resetMultipliersToDefault); // Add event listener for reset multipliers
@@ -2200,7 +2276,7 @@
                 });
             });
 
-            // Initial Setup
+            // Initial Setup (handled by onAuthStateChanged calling loadOTEntries)
             populateTargetOTPayDropdown(); // Populate dropdown on load
             renderOTMultiplierInputs(); // Render default multipliers immediately
             // Data will be loaded via onAuthStateChanged, which will then call other render/update functions.
