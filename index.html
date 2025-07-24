@@ -1937,7 +1937,7 @@
             contentElement.style.maxHeight = contentElement.scrollHeight + "px";
             // Force reflow to ensure the browser registers the height before transition
             contentElement.offsetWidth;
-            contentElement.classList.add('collapsed');
+            contentContent.classList.add('collapsed');
             if (iconElement) iconElement.classList.remove('rotated');
 
             // Clear max-height after transition to allow it to be re-calculated if expanded again
@@ -2393,12 +2393,21 @@
                 a.href = url;
                 a.download = 'ot_summary.txt';
                 document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                a.click(); // Programmatically click the link
+
+                // Show a temporary success message
+                showMessageBox('Export Initiated', 'Your OT summary is being downloaded. Please check your downloads folder.', 'info');
+
+                // Clean up the temporary URL and element after a short delay
+                // This delay can sometimes help ensure the download starts before cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100); // Small delay, e.g., 100ms
+
             } catch (error) {
                 console.error("Error during export summary:", error);
-                showMessageBox('Export Error', 'Failed to export summary. Please check console for details.');
+                showMessageBox('Export Error', 'Failed to export summary. Please check your browser console for details.');
             }
         }
 
