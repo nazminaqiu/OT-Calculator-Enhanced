@@ -2249,151 +2249,157 @@
          * Exports the summary to a text file.
          */
         function exportSummary() {
-            const basicSalary = parseFloat(basicSalaryInput.value);
-            const targetOTPay = getTargetOTPayValue(); // Get value using new helper
-            const startDate = startDateInput.value;
-            const endDate = endDateInput.value;
-            const hourlyRate = calculateHourlyRate(basicSalary);
+            console.log("Export Summary button clicked."); // Log to confirm function call
+            try {
+                const basicSalary = parseFloat(basicSalaryInput.value);
+                const targetOTPay = getTargetOTPayValue(); // Get value using new helper
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
+                const hourlyRate = calculateHourlyRate(basicSalary);
 
-            let summaryText = `--- OT Calculation Summary ---\n\n`;
-            summaryText += `Employee Settings:\n`;
-            summaryText += `  Basic Monthly Salary: ${formatCurrency(basicSalary)}\n`;
-            summaryText += `  Hourly Rate: RM ${hourlyRate.toFixed(2)}/hour\n\n`;
+                let summaryText = `--- OT Calculation Summary ---\n\n`;
+                summaryText += `Employee Settings:\n`;
+                summaryText += `  Basic Monthly Salary: ${formatCurrency(basicSalary)}\n`;
+                summaryText += `  Hourly Rate: RM ${hourlyRate.toFixed(2)}/hour\n\n`;
 
-            summaryText += `OT Planning Period: ${startDate} to ${endDate}\n`;
-            summaryText += `Target OT Pay: ${targetOTPay === null ? 'N/A' : formatCurrency(targetOTPay)}\n\n`;
+                summaryText += `OT Planning Period: ${startDate} to ${endDate}\n`;
+                summaryText += `Target OT Pay: ${targetOTPay === null ? 'N/A' : formatCurrency(targetOTPay)}\n\n`;
 
-            summaryText += `OT Multipliers Used:\n`;
-            for (const type in CONFIG.OT_MULTIPLIERS) {
-                summaryText += `  ${type}: ${CONFIG.OT_MULTIPLIERS[type].toFixed(2)}x\n`;
-            }
-            summaryText += `\n`;
-
-            // Group entries by type for export
-            const groupedEntriesForExport = {};
-            const exportOrder = [
-                'Normal OT (Weekdays)',
-                'Off Day (Saturday)',
-                'Rest Day (Sunday) — 1st 8h',
-                'Rest Day (Sunday) — after 8h',
-                'Public Holiday'
-            ];
-
-            // Populate groupedEntriesForExport
-            otEntries.forEach(entry => {
-                const typeToGroup = isPublicHoliday(entry.date) ? 'Public Holiday' : entry.type;
-                if (!groupedEntriesForExport[typeToGroup]) {
-                    groupedEntriesForExport[typeToGroup] = [];
+                summaryText += `OT Multipliers Used:\n`;
+                for (const type in CONFIG.OT_MULTIPLIERS) {
+                    summaryText += `  ${type}: ${CONFIG.OT_MULTIPLIERS[type].toFixed(2)}x\n`;
                 }
-                groupedEntriesForExport[typeToGroup].push(entry);
-            });
+                summaryText += `\n`;
 
-            summaryText += `Daily OT Entries:\n`;
-            if (otEntries.length === 0) {
-                summaryText += `  No entries recorded.\n`;
-            } else {
-                exportOrder.forEach(typeGroup => {
-                    if (groupedEntriesForExport[typeGroup] && groupedEntriesForExport[typeGroup].length > 0) {
-                        summaryText += `\n--- ${typeGroup} ---\n`;
-                        // Sort entries within each group by date for chronological display within type
-                        groupedEntriesForExport[typeGroup].sort((a, b) => new Date(a.date) - new Date(b.date));
-                        groupedEntriesForExport[typeGroup].forEach(entry => {
-                            summaryText += `  Date: ${entry.date}, Hours: ${entry.hours.toFixed(1)}h, Type: ${entry.type}`;
-                            if (isPublicHoliday(entry.date)) {
-                                summaryText += ` (Public Holiday)`;
-                            }
-                            summaryText += `\n`;
-                            if (entry.startTime && entry.endTime) {
-                                summaryText += `  Suggested Time: ${entry.startTime} - ${entry.endTime}\n`;
-                            }
-                        });
+                // Group entries by type for export
+                const groupedEntriesForExport = {};
+                const exportOrder = [
+                    'Normal OT (Weekdays)',
+                    'Off Day (Saturday)',
+                    'Rest Day (Sunday) — 1st 8h',
+                    'Rest Day (Sunday) — after 8h',
+                    'Public Holiday'
+                ];
+
+                // Populate groupedEntriesForExport
+                otEntries.forEach(entry => {
+                    const typeToGroup = isPublicHoliday(entry.date) ? 'Public Holiday' : entry.type;
+                    if (!groupedEntriesForExport[typeToGroup]) {
+                        groupedEntriesForExport[typeToGroup] = [];
+                    }
+                    groupedEntriesForExport[typeToGroup].push(entry);
+                });
+
+                summaryText += `Daily OT Entries:\n`;
+                if (otEntries.length === 0) {
+                    summaryText += `  No entries recorded.\n`;
+                } else {
+                    exportOrder.forEach(typeGroup => {
+                        if (groupedEntriesForExport[typeGroup] && groupedEntriesForExport[typeGroup].length > 0) {
+                            summaryText += `\n--- ${typeGroup} ---\n`;
+                            // Sort entries within each group by date for chronological display within type
+                            groupedEntriesForExport[typeGroup].sort((a, b) => new Date(a.date) - new Date(b.date));
+                            groupedEntriesForExport[typeGroup].forEach(entry => {
+                                summaryText += `  Date: ${entry.date}, Hours: ${entry.hours.toFixed(1)}h, Type: ${entry.type}`;
+                                if (isPublicHoliday(entry.date)) {
+                                    summaryText += ` (Public Holiday)`;
+                                }
+                                summaryText += `\n`;
+                                if (entry.startTime && entry.endTime) {
+                                    summaryText += `  Suggested Time: ${entry.startTime} - ${entry.endTime}\n`;
+                                }
+                            });
+                        }
+                    });
+                }
+                summaryText += `\n`;
+
+                // Recalculate for export to ensure consistency
+                let totalHoursByType = {};
+                let totalPayByCategory = {};
+                let combinedOTPay = 0;
+                let totalMonthlyOTHours = 0;
+
+                // Initialize categories including Public Holiday
+                for (const type in CONFIG.OT_MULTIPLIERS) {
+                    totalHoursByType[type] = 0;
+                    totalPayByCategory[type] = 0;
+                }
+                if (!totalHoursByType['Public Holiday']) {
+                    totalHoursByType['Public Holiday'] = 0;
+                    totalPayByCategory['Public Holiday'] = 0;
+                }
+
+                otEntries.forEach(entry => {
+                    const hours = parseFloat(entry.hours);
+                    const type = entry.type;
+                    const date = entry.date;
+                    if (isNaN(hours) || hours <= 0) return;
+
+                    // Determine the category for summing hours and pay in the summary
+                    const categoryForSumming = isPublicHoliday(date) ? 'Public Holiday' : type;
+
+                    const multiplier = isPublicHoliday(date) ? CONFIG.OT_MULTIPLIERS['Public Holiday'] : CONFIG.OT_MULTIPLIERS[type];
+                    if (multiplier === undefined) return;
+
+                    const dailyOTPay = calculateOT(hourlyRate, hours, type, date);
+
+                    totalHoursByType[categoryForSumming] += hours;
+                    totalPayByCategory[categoryForSumming] += dailyOTPay;
+                    combinedOTPay += dailyOTPay;
+                    totalMonthlyOTHours += hours;
+                });
+
+                const expectedSalaryPay = basicSalary + combinedOTPay; // Calculate for export
+
+                summaryText += `Total OT Hours by Type:\n`;
+                let hoursSummaryExport = [];
+                const displayOrderForSummaryExport = [
+                    'Normal OT (Weekdays)',
+                    'Off Day (Saturday)',
+                    'Rest Day (Sunday) — 1st 8h',
+                    'Rest Day (Sunday) — after 8h',
+                    'Public Holiday'
+                ];
+                displayOrderForSummaryExport.forEach(type => {
+                    if (totalHoursByType[type] > 0) {
+                        hoursSummaryExport.push(`${type}: ${totalHoursByType[type].toFixed(1)}h`);
                     }
                 });
+                summaryText += `  ${hoursSummaryExport.join(', ')}\n`;
+                summaryText += `\n`;
+
+                summaryText += `Total Pay per OT Category:\n`;
+                let paySummaryExport = [];
+                displayOrderForSummaryExport.forEach(type => {
+                    if (totalPayByCategory[type] > 0) {
+                        totalPayByCategory[type] = parseFloat(totalPayByCategory[type].toFixed(2)); // Round to 2 decimal places for display
+                        paySummaryExport.push(`${type}: ${formatCurrency(totalPayByCategory[type])}`);
+                    }
+                });
+                summaryText += `  ${paySummaryExport.join(', ')}\n`;
+                summaryText += `\n`;
+
+                summaryText += `Combined OT Pay: ${formatCurrency(combinedOTPay)}\n`;
+                const difference = combinedOTPay - (targetOTPay === null ? 0 : targetOTPay);
+                summaryText += `Difference from Target: ${targetOTPay === null ? 'N/A (No target set)' : formatCurrency(difference)}\n`;
+                summaryText += `Total Monthly OT Hours: ${totalMonthlyOTHours.toFixed(1)} hours\n`; // Removed max hours
+                summaryText += `Expected Salary Pay (Calculated): ${formatCurrency(expectedSalaryPay)}\n`; // Add calculated expected salary
+                summaryText += `\n--- End of Summary ---`;
+
+                const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ot_summary.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Error during export summary:", error);
+                showMessageBox('Export Error', 'Failed to export summary. Please check console for details.');
             }
-            summaryText += `\n`;
-
-            // Recalculate for export to ensure consistency
-            let totalHoursByType = {};
-            let totalPayByCategory = {};
-            let combinedOTPay = 0;
-            let totalMonthlyOTHours = 0;
-
-            // Initialize categories including Public Holiday
-            for (const type in CONFIG.OT_MULTIPLIERS) {
-                totalHoursByType[type] = 0;
-                totalPayByCategory[type] = 0;
-            }
-            if (!totalHoursByType['Public Holiday']) {
-                totalHoursByType['Public Holiday'] = 0;
-                totalPayByCategory['Public Holiday'] = 0;
-            }
-
-            otEntries.forEach(entry => {
-                const hours = parseFloat(entry.hours);
-                const type = entry.type;
-                const date = entry.date;
-                if (isNaN(hours) || hours <= 0) return;
-
-                // Determine the category for summing hours and pay in the summary
-                const categoryForSumming = isPublicHoliday(date) ? 'Public Holiday' : type;
-
-                const multiplier = isPublicHoliday(date) ? CONFIG.OT_MULTIPLIERS['Public Holiday'] : CONFIG.OT_MULTIPLIERS[type];
-                if (multiplier === undefined) return;
-
-                const dailyOTPay = calculateOT(hourlyRate, hours, type, date);
-
-                totalHoursByType[categoryForSumming] += hours;
-                totalPayByCategory[categoryForSumming] += dailyOTPay;
-                combinedOTPay += dailyOTPay;
-                totalMonthlyOTHours += hours;
-            });
-
-            const expectedSalaryPay = basicSalary + combinedOTPay; // Calculate for export
-
-            summaryText += `Total OT Hours by Type:\n`;
-            let hoursSummaryExport = [];
-            const displayOrderForSummaryExport = [
-                'Normal OT (Weekdays)',
-                'Off Day (Saturday)',
-                'Rest Day (Sunday) — 1st 8h',
-                'Rest Day (Sunday) — after 8h',
-                'Public Holiday'
-            ];
-            displayOrderForSummaryExport.forEach(type => {
-                if (totalHoursByType[type] > 0) {
-                    hoursSummaryExport.push(`${type}: ${totalHoursByType[type].toFixed(1)}h`);
-                }
-            });
-            summaryText += `  ${hoursSummaryExport.join(', ')}\n`;
-            summaryText += `\n`;
-
-            summaryText += `Total Pay per OT Category:\n`;
-            let paySummaryExport = [];
-            displayOrderForSummaryExport.forEach(type => {
-                if (totalPayByCategory[type] > 0) {
-                    totalPayByCategory[type] = parseFloat(totalPayByCategory[type].toFixed(2)); // Round to 2 decimal places for display
-                    paySummaryExport.push(`${type}: ${formatCurrency(totalPayByCategory[type])}`);
-                }
-            });
-            summaryText += `  ${paySummaryExport.join(', ')}\n`;
-            summaryText += `\n`;
-
-            summaryText += `Combined OT Pay: ${formatCurrency(combinedOTPay)}\n`;
-            const difference = combinedOTPay - (targetOTPay === null ? 0 : targetOTPay);
-            summaryText += `Difference from Target: ${targetOTPay === null ? 'N/A (No target set)' : formatCurrency(difference)}\n`;
-            summaryText += `Total Monthly OT Hours: ${totalMonthlyOTHours.toFixed(1)} hours\n`; // Removed max hours
-            summaryText += `Expected Salary Pay (Calculated): ${formatCurrency(expectedSalaryPay)}\n`; // Add calculated expected salary
-            summaryText += `\n--- End of Summary ---`;
-
-            const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'ot_summary.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
 
         /**
