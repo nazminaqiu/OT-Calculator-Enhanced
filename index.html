@@ -1291,10 +1291,27 @@
                             typeSelect.value = typeToDisplayInDropdown; // Set the value here
                         }
 
-                        // Re-attach event listeners
-                        newRow.querySelector(`#${entryId}-date`).addEventListener('change', (e) => {
-                            updateOTEntry(entryId, 'date', e.target.value);
-                        });
+                        // Initialize Flatpickr for each date input in the rendered entries
+                        const dateInput = newRow.querySelector(`#${entryId}-date`);
+                        if (dateInput) {
+                            // Disable all dates that are already used by other entries
+                            const disabledDates = otEntries
+                                .filter(e => e.id !== entryId) // Exclude the current entry's date
+                                .map(e => e.date);
+
+                            window.flatpickr(dateInput, {
+                                dateFormat: "Y-m-d",
+                                minDate: startDateInput.value, // Enforce planning range
+                                maxDate: endDateInput.value,   // Enforce planning range
+                                disable: disabledDates,
+                                onChange: function(selectedDates, dateStr, instance) {
+                                    // Manually trigger the updateOTEntry logic
+                                    updateOTEntry(entryId, 'date', dateStr);
+                                }
+                            });
+                        }
+
+                        // Re-attach event listeners for hours and type
                         const hoursInput = newRow.querySelector(`#${entryId}-hours`);
                         const hoursError = newRow.querySelector(`#${entryId}-hours-error`);
                         hoursInput.addEventListener('input', (e) => {
@@ -1316,7 +1333,8 @@
                     otEntriesContainer.appendChild(groupSection);
                 }
             });
-            updateManualEntryDatePicker(); // Refresh the date picker after rendering entries
+            // The manual entry date picker is updated separately in updateManualEntryDatePicker
+            // No need to call updateManualEntryDatePicker here as it's called after renderOTEntries.
         }
 
 
@@ -1920,7 +1938,7 @@
             contentElement.style.maxHeight = contentElement.scrollHeight + "px";
             // Force reflow to ensure the browser registers the height before transition
             contentElement.offsetWidth;
-            contentElement.classList.add('collapsed'); // Corrected from contentContent.classList.add
+            contentContent.classList.add('collapsed'); // Corrected from contentContent.classList.add
             if (iconElement) iconElement.classList.remove('rotated');
 
             // Clear max-height after transition to allow it to be re-calculated if expanded again
@@ -2543,7 +2561,7 @@
                 return;
             }
 
-            // NEW: Calculate available dates before opening the modal
+            // Calculate available dates before opening the modal
             const allDatesInRange = [];
             let currentCheckDate = new Date(startDate);
             const endCheckDate = new Date(endDate);
@@ -2552,6 +2570,7 @@
                 currentCheckDate.setDate(currentCheckDate.getDate() + 1);
             }
 
+            // Filter out dates that already have an OT entry
             const availableDatesForSelection = allDatesInRange.filter(dateString => {
                 return !otEntries.some(entry => entry.date === dateString);
             });
@@ -2565,9 +2584,9 @@
             if (!manualDatePickerInstance) {
                 manualDatePickerInstance = window.flatpickr(manualEntryDateInput, {
                     dateFormat: "Y-m-d",
-                    minDate: startDate,
-                    maxDate: endDate,
-                    disable: otEntries.map(entry => entry.date), // Pass array of disabled dates
+                    minDate: startDate, // Enforce min date from planning range
+                    maxDate: endDate,   // Enforce max date from planning range
+                    disable: otEntries.map(entry => entry.date), // Disable all dates already taken
                     defaultDate: availableDatesForSelection[0] || getTodayDateString(), // Set default to first available date or today
                     onChange: function(selectedDates, dateStr, instance) {
                         manualEntryDateError.textContent = '';
@@ -2575,8 +2594,8 @@
                     }
                 });
             } else {
-                manualDatePickerInstance.set('minDate', startDate);
-                manualDatePickerInstance.set('maxDate', endDate);
+                manualDatePickerInstance.set('minDate', startDate); // Update min date
+                manualDatePickerInstance.set('maxDate', endDate);   // Update max date
                 manualDatePickerInstance.set('disable', otEntries.map(entry => entry.date)); // Update the disabled dates
                 manualDatePickerInstance.setDate(availableDatesForSelection[0] || getTodayDateString()); // Reset to first available date or today
                 manualDatePickerInstance.redraw();
@@ -2620,17 +2639,17 @@
             const startDateTime = new Date(startDate).getTime();
             const endDateTime = new Date(endDate).getTime();
 
-            // Double check validation, though Flatpickr should prevent this
+            // Double check validation for date range
             if (selectedDateTime < startDateTime || selectedDateTime > endDateTime) {
                 manualEntryDateError.textContent = `Date must be within ${startDate} and ${endDate}.`;
                 manualEntryDateInput.classList.add('input-error');
                 return;
             }
 
-            // Check for duplicate date
+            // Check for duplicate date across ALL existing entries
             const isDateAlreadyUsed = otEntries.some(entry => entry.date === selectedDate);
             if (isDateAlreadyUsed) {
-                manualEntryDateError.textContent = `An OT entry already exists for ${selectedDate}.`;
+                manualEntryDateError.textContent = `An OT entry already exists for ${selectedDate}. Each date can only have one OT entry.`;
                 manualEntryDateInput.classList.add('input-error');
                 return;
             }
