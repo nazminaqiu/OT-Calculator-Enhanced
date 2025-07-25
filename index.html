@@ -1143,7 +1143,6 @@
 
         /**
          * Calculates the OT pay for a given entry.
-         * @param {number} hourlyRate - The basic hourly rate.
          * @param {number} hours - The number of OT hours.
          * @param {string} type - The type of OT (e.g., 'Normal OT (Weekdays)').
          * @param {string} date - The date of the OT entry (YYYY-MM-DD).
@@ -2278,8 +2277,8 @@
                 const inputGroup = document.createElement('div');
                 inputGroup.classList.add('input-group');
                 inputGroup.innerHTML = `
-                    <label for="multiplier-${type.replace(/[^a-zA-Z0-9]/g, '')}">${type} Multiplier</label>
-                    <input type="number" id="multiplier-${type.replace(/[^a-zA-Z0-9]/g, '')}" value="${(CONFIG.OT_MULTIPLIERS[type] || 0).toFixed(2)}" min="0" step="0.1" class="shadow-sm">
+                    <label for="multiplier-${type.replace(/[^0-9A-Za-z]/g, '')}">${type} Multiplier</label>
+                    <input type="number" id="multiplier-${type.replace(/[^0-9A-Za-z]/g, '')}" value="${(CONFIG.OT_MULTIPLIERS[type] || 0).toFixed(2)}" min="0" step="0.1" class="shadow-sm">
                 `;
                 otMultiplierInputsContainer.appendChild(inputGroup);
 
