@@ -448,6 +448,60 @@
         .allocation-choice-modal .modal-buttons {
             flex-direction: column; /* Stack buttons vertically */
         }
+
+        /* Toggle switch styling */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #6366f1; /* Indigo */
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #6366f1;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
     </style>
 </head>
 <body>
@@ -688,6 +742,19 @@
                 </div>
             </div>
 
+            <!-- Firebase Toggle Button -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mt-6 flex items-center justify-between">
+                <label for="firebaseToggle" class="text-xl font-bold text-gray-800 cursor-pointer">
+                    Enable Firebase (Save/Load Data)
+                </label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="firebaseToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <p id="firebaseStatusMessage" class="text-sm text-gray-600 mt-2 text-center"></p>
+
+
             <button id="calculateBtn" class="btn btn-primary w-full mt-4" aria-label="Calculate total OT pay">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v4a1 1 0 01-1 1H3a1 1 0 01-1-1v-4z" />
@@ -901,6 +968,7 @@
         let auth;
         let userId;
         let isAuthReady = false; // Flag to ensure Firestore operations wait for auth
+        let isFirebaseEnabled = JSON.parse(localStorage.getItem('isFirebaseEnabled') || 'true'); // Default to true if not set
         let manualDatePickerInstance; // Flatpickr instance for manual entry date picker (original, now unused)
         let publicHolidayDatePickerInstance; // Flatpickr instance for public holiday date picker
         let startDateModalPicker; // New: Flatpickr instance for start date in modal
@@ -1005,6 +1073,9 @@
 
         let saveDataStatus;
         let loadDataStatus;
+
+        let firebaseToggle; // New: Firebase toggle switch
+        let firebaseStatusMessage; // New: Firebase status message
 
 
         // --- Utility Functions ---
@@ -2149,7 +2220,7 @@
             contentElement.style.maxHeight = contentElement.scrollHeight + "px";
             // Force reflow to ensure the browser registers the height before transition
             contentElement.offsetWidth;
-            contentElement.classList.add('collapsed');
+            contentContent.classList.add('collapsed');
             if (iconElement) iconElement.classList.remove('rotated');
 
             // Clear max-height after transition to allow it to be re-calculated if expanded again
@@ -2695,8 +2766,12 @@
          * Saves the current application data to Firestore.
          */
         async function saveOTEntries() {
+            if (!isFirebaseEnabled) {
+                showMessageBox('Feature Disabled', 'Firebase functions (Save/Load) are currently disabled. Please enable them to use this feature.');
+                return;
+            }
             if (!isAuthReady || !userId) {
-                showMessageBox('Save Error', 'Authentication not ready. Please try again in a moment.');
+                showMessageBox('Save Error', 'Firebase authentication not ready. Please try again in a moment.');
                 return;
             }
             showStatusMessage(saveDataStatus, 'Saving...', 'loading');
@@ -2741,10 +2816,16 @@
          * @param {boolean} showMessageBoxOnSuccess - Whether to show a message box on successful load.
          */
         async function loadOTEntries(showMessageBoxOnSuccess = true) {
+            if (!isFirebaseEnabled) {
+                if (showMessageBoxOnSuccess) {
+                    showMessageBox('Feature Disabled', 'Firebase functions (Save/Load) are currently disabled. Please enable them to use this feature.');
+                }
+                return;
+            }
             if (!isAuthReady || !userId) {
-                console.warn("Authentication not ready for loading data.");
+                console.warn("Firebase authentication not ready for loading data.");
                 if (showMessageBoxOnSuccess) { // Only show error if explicitly requested by button click
-                    showMessageBox('Load Error', 'Authentication not ready. Please try again in a moment.');
+                    showMessageBox('Load Error', 'Firebase authentication not ready. Please try again in a moment.');
                 }
                 return;
             }
@@ -3224,6 +3305,104 @@
             }
         }
 
+        /**
+         * Initializes Firebase if enabled.
+         */
+        async function initializeFirebase() {
+            if (!isFirebaseEnabled) {
+                console.log("Firebase is disabled by toggle. Skipping initialization.");
+                firebaseStatusMessage.textContent = 'Firebase (Save/Load) is currently disabled.';
+                userIdDisplay.classList.add('hidden'); // Hide user ID if Firebase is off
+                return;
+            }
+
+            console.log("Attempting to initialize Firebase...");
+            firebaseStatusMessage.textContent = 'Initializing Firebase...';
+            try {
+                const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+                const firebaseConfig = JSON.parse(firebaseConfigString);
+
+                if (Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("Firebase configuration is empty or invalid. Please ensure __firebase_config is set correctly.");
+                }
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        userIdDisplay.textContent = `User ID: ${userId}`;
+                        userIdDisplay.classList.remove('hidden');
+                        console.log("Firebase authenticated. User ID:", userId);
+                        firebaseStatusMessage.textContent = 'Firebase enabled and connected.';
+                        await loadOTEntries(false); // Load data once authenticated, don't show message box on initial load
+                    } else {
+                        try {
+                            const anonymousUser = await signInAnonymously(auth);
+                            userId = anonymousUser.user.uid;
+                            isAuthReady = true;
+                            userIdDisplay.textContent = `User ID: ${userId}`;
+                            userIdDisplay.classList.remove('hidden');
+                            console.log("Signed in anonymously. User ID:", userId);
+                            firebaseStatusMessage.textContent = 'Firebase enabled and connected (anonymous).';
+                            await loadOTEntries(false); // Load data once authenticated, don't show message box on initial load
+                        } catch (error) {
+                            console.error("Anonymous sign-in failed:", error);
+                            firebaseStatusMessage.textContent = 'Firebase connection failed. Check console.';
+                            showMessageBox('Authentication Error', 'Failed to sign in. This is often due to a network issue or a problem with your Firebase project setup. Please check your internet connection and ensure your Firebase project is correctly configured. Data saving/loading may not work.');
+                        }
+                    }
+                    updateFirebaseButtonStates(); // Update button states after auth state is known
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                firebaseStatusMessage.textContent = `Firebase init failed: ${error.message}.`;
+                showMessageBox('Initialization Error', `Firebase could not be initialized: ${error.message || 'Unknown error'}. Data saving/loading will not work. Please ensure your Firebase configuration is valid.`);
+                isFirebaseEnabled = false; // Force disable if init fails
+                firebaseToggle.checked = false;
+                localStorage.setItem('isFirebaseEnabled', 'false');
+                updateFirebaseButtonStates(); // Update button states to disabled
+                userIdDisplay.classList.add('hidden'); // Hide user ID if Firebase is off
+            }
+        }
+
+        /**
+         * Updates the enabled/disabled state of Firebase-related buttons.
+         */
+        function updateFirebaseButtonStates() {
+            saveDataBtn.disabled = !isFirebaseEnabled || !isAuthReady;
+            loadDataBtn.disabled = !isFirebaseEnabled || !isAuthReady;
+            // You might also want to disable auto-allocation if it relies heavily on saved data/user ID,
+            // but for now, it's left enabled as it operates on local data primarily.
+        }
+
+        /**
+         * Handles the change event for the Firebase toggle switch.
+         */
+        async function handleFirebaseToggleChange() {
+            isFirebaseEnabled = firebaseToggle.checked;
+            localStorage.setItem('isFirebaseEnabled', isFirebaseEnabled);
+            console.log(`Firebase toggle changed to: ${isFirebaseEnabled}`);
+
+            if (isFirebaseEnabled) {
+                // If enabling, try to initialize Firebase and load data
+                await initializeFirebase();
+            } else {
+                // If disabling, clear Firebase related state and disable buttons
+                db = null;
+                auth = null;
+                userId = null;
+                isAuthReady = false;
+                userIdDisplay.classList.add('hidden');
+                firebaseStatusMessage.textContent = 'Firebase (Save/Load) is now disabled.';
+                console.log("Firebase explicitly disabled. Firebase objects cleared.");
+            }
+            updateFirebaseButtonStates();
+        }
+
 
         document.addEventListener('DOMContentLoaded', async () => {
             // --- DOM Elements Assignment ---
@@ -3320,48 +3499,21 @@
             saveDataStatus = document.getElementById('saveDataStatus');
             loadDataStatus = document.getElementById('loadDataStatus');
 
+            firebaseToggle = document.getElementById('firebaseToggle'); // Assign new toggle
+            firebaseStatusMessage = document.getElementById('firebaseStatusMessage'); // Assign new status message
+
 
             // --- Firebase Initialization ---
-            try {
-                const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-                const firebaseConfig = JSON.parse(firebaseConfigString);
+            // Set initial state of the toggle
+            firebaseToggle.checked = isFirebaseEnabled;
+            updateFirebaseButtonStates(); // Set initial button states
 
-                if (Object.keys(firebaseConfig).length === 0) {
-                    throw new Error("Firebase configuration is empty or invalid. Please ensure __firebase_config is set correctly.");
-                }
-
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Listen for auth state changes to set userId and load data
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        isAuthReady = true;
-                        userIdDisplay.textContent = `User ID: ${userId}`;
-                        userIdDisplay.classList.remove('hidden');
-                        console.log("Firebase authenticated. User ID:", userId);
-                        await loadOTEntries(false); // Load data once authenticated, don't show message box on initial load
-                    } else {
-                        // Sign in anonymously if no user is logged in
-                        try {
-                            const anonymousUser = await signInAnonymously(auth);
-                            userId = anonymousUser.user.uid;
-                            isAuthReady = true;
-                            userIdDisplay.textContent = `User ID: ${userId}`;
-                            userIdDisplay.classList.remove('hidden');
-                            console.log("Signed in anonymously. User ID:", userId);
-                            await loadOTEntries(false); // Load data once authenticated, don't show message box on initial load
-                        } catch (error) {
-                            console.error("Anonymous sign-in failed:", error);
-                            showMessageBox('Authentication Error', 'Failed to sign in. This is often due to a network issue or a problem with your Firebase project setup. Please check your internet connection and ensure your Firebase project is correctly configured. Data saving/loading may not work.');
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                showMessageBox('Initialization Error', `Firebase could not be initialized: ${error.message || 'Unknown error'}. Data saving/loading will not work. Please ensure your Firebase configuration is valid.`);
+            // Only attempt Firebase init if enabled
+            if (isFirebaseEnabled) {
+                await initializeFirebase();
+            } else {
+                firebaseStatusMessage.textContent = 'Firebase (Save/Load) is currently disabled.';
+                userIdDisplay.classList.add('hidden'); // Hide user ID if Firebase is off
             }
 
             // --- Event Listeners ---
@@ -3474,6 +3626,9 @@
             // New: Event listeners for date range modal buttons
             confirmDateRangeBtn.addEventListener('click', handleConfirmDateRange);
             cancelDateRangeBtn.addEventListener('click', hideDateRangeModal);
+
+            // New: Firebase toggle listener
+            firebaseToggle.addEventListener('change', handleFirebaseToggleChange);
 
 
             // Initial Setup (handled by onAuthStateChanged calling loadOTEntries)
