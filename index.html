@@ -479,16 +479,16 @@
                                     </ul>
                                 </li>
                                 <li>Select a **Workload Preset** (Light, Moderate, Heavy) to guide auto-allocation.</li>
-                                <li>Click "Auto Allocate Hours" to automatically generate entries. You will be prompted to either **clear existing entries** or **fill remaining hours**.</li>
-                                <li>Click **"Reset & Re-allocate All"** to clear all entries and start a fresh auto-allocation.</li>
+                                <li>Click "Auto Allocate Hours" to automatically generate entries. You will be prompted to either **auto allocate new entries** or **fill remaining hours**.</li>
                                 <li>Click "Add OT Entry" to manually add entries for specific dates.</li>
                                 <li>You can edit hours, dates, and types for each entry.</li>
                                 <li>"Save Data" and "Load Data" buttons allow you to persist your entries.</li>
                             </ul>
                         </li>
                         <li><strong>6. Calculate OT:</strong> Click this button to run the auto-allocation and see your total calculated OT pay and other summary details.</li>
-                        <li><strong>7. Calculation Summary:</strong> Review your total hours, pay per category, combined OT pay, and expected total salary.</li>
-                        <li><strong>8. Export Summary:</strong> Save a text file with a detailed breakdown of your calculations.</li>
+                        <li><strong>7. Reset & Re-allocate All:</strong> Click this to clear all existing entries and perform a fresh auto-allocation.</li>
+                        <li><strong>8. Calculation Summary:</strong> Review your total hours, pay per category, combined OT pay, and expected total salary.</li>
+                        <li><strong>9. Export Summary:</strong> Save a text file with a detailed breakdown of your calculations.</li>
                     </ul>
                 </div>
             </div>
@@ -648,12 +648,7 @@
                         Auto Allocate Hours
                         <span id="autoAllocateLoading" class="loading-indicator hidden" aria-live="polite">Allocating...</span>
                     </button>
-                    <button id="resetAndReallocateBtn" class="btn btn-danger flex-grow" aria-label="Reset all and re-allocate">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.118a1 1 0 01-.293.707l-2.118 2.118A1 1 0 012 8v8a2 2 0 002 2h12a2 2 0 002-2V8a1 1 0 01-.293-.707l-2.118-2.118A1 1 0 0115 5.118V3a1 1 0 011-1h-2a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H4zm2 5V4h8v3H6zm-2 4h12V9H4v2zm0 2h12v3H4v-3z" clip-rule="evenodd" />
-                        </svg>
-                        Reset & Re-allocate All
-                    </button>
+                    <!-- resetAndReallocateBtn moved below calculateBtn -->
                 </div>
 
                 <div id="otEntriesContainer">
@@ -699,6 +694,13 @@
                     <path fill-rule="evenodd" d="M14.5 4.5a3 3 0 11-6 0 3 3 0 016 0zm-6.293 3.293a1 1 0 011.414 0L10 8.586l.293-.293a1 1 0 011.414 0l.707.707a1 1 0 010 1.414L10 11.414l-.293.293a1 1 0 01-1.414 0l-.707-.707a1 1 0 010-1.414L9.414 9l-.293-.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
                 Calculate OT
+            </button>
+            <!-- NEW: Reset & Re-allocate All button moved here -->
+            <button id="resetAndReallocateBtn" class="btn btn-danger w-full mt-4" aria-label="Reset all and re-allocate">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.118a1 1 0 01-.293.707l-2.118 2.118A1 1 0 012 8v8a2 2 0 002 2h12a2 2 0 002-2V8a1 1 0 01-.293-.707l-2.118-2.118A1 1 0 0115 5.118V3a1 1 0 011-1h-2a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H4zm2 5V4h8v3H6zm-2 4h12V9H4v2zm0 2h12v3H4v-3z" clip-rule="evenodd" />
+                </svg>
+                Reset & Re-allocate All
             </button>
         </div>
 
@@ -819,7 +821,7 @@
             <p class="text-gray-700 mb-6">How would you like to allocate overtime hours?</p>
             <div class="modal-buttons">
                 <button id="clearAndAllocateBtn" class="btn btn-danger">
-                    Clear All & Re-allocate
+                    Auto Allocate
                 </button>
                 <button id="fillRemainingBtn" class="btn btn-primary mt-4">
                     Fill Remaining Hours
@@ -1796,7 +1798,7 @@
                     // This ensures consistency with how manual entries are typed.
                     type: getDefaultOTTypeForDate(date),
                     startTime: '', // Will be calculated by calculateAndAssignTimes
-                    endTime: '',    // Will be calculated by calculateAndAssignTimes
+                    endTime: '',    // Will be calculated by calculateAnd2AssignTimes
                 };
                 // Calculate initial times for new entry
                 calculateSuggestedTimes(newEntry);
@@ -3322,7 +3324,13 @@
 
             // --- Firebase Initialization ---
             try {
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+                const firebaseConfig = JSON.parse(firebaseConfigString);
+
+                if (Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("Firebase configuration is empty or invalid. Please ensure __firebase_config is set correctly.");
+                }
+
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
@@ -3348,13 +3356,13 @@
                             await loadOTEntries(false); // Load data once authenticated, don't show message box on initial load
                         } catch (error) {
                             console.error("Anonymous sign-in failed:", error);
-                            showMessageBox('Authentication Error', 'Failed to sign in. Data saving/loading may not work.');
+                            showMessageBox('Authentication Error', 'Failed to sign in. This is often due to a network issue or a problem with your Firebase project setup. Please check your internet connection and ensure your Firebase project is correctly configured. Data saving/loading may not work.');
                         }
                     }
                 });
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                showMessageBox('Initialization Error', 'Firebase could not be initialized. Data saving/loading will not work.');
+                showMessageBox('Initialization Error', `Firebase could not be initialized: ${error.message || 'Unknown error'}. Data saving/loading will not work. Please ensure your Firebase configuration is valid.`);
             }
 
             // --- Event Listeners ---
