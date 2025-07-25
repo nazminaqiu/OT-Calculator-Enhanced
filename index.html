@@ -564,15 +564,15 @@
                         <div class="input-group flex-grow">
                             <label for="publicHolidayDate">Add Public Holiday Date</label>
                             <div class="flex items-center gap-2">
-                                <input type="date" id="publicHolidayDate" class="shadow-sm flex-grow" disabled>
-                                <button type="button" id="setPublicHolidayTodayBtn" class="btn btn-secondary p-2" aria-label="Set public holiday date to today" disabled>
+                                <input type="date" id="publicHolidayDate" class="shadow-sm flex-grow">
+                                <button type="button" id="setPublicHolidayTodayBtn" class="btn btn-secondary p-2" aria-label="Set public holiday date to today">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <button id="addPublicHolidayDateBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday" disabled>
+                        <button id="addPublicHolidayDateBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
                             </svg>
@@ -1821,7 +1821,7 @@
                         currentMultiplier = CONFIG.OT_MULTIPLIERS[typeToUse];
                         const presetFor1st8h = presetDetails[typeToUse];
                         hoursToConsider = getRandomHours(presetFor1st8h.minHours, presetFor1st8h.maxHours);
-                        hoursToConsider = Math.min(hoursToConsider, maxHoursForThisDay, 8 - currentSunday1st8h); // Cap at 8 hours for this type
+                        hoursToConsider = Math.min(hoursToConsider, maxHoursForThisDay, 8 - current1st8h); // Cap at 8 hours for this type
 
                     } else if (totalHoursOnSunday < CONFIG.MAX_DAILY_OT_HOURS) { // After 1st 8h, consider after 8h
                         typeToUse = 'Rest Day (Sunday) — after 8h';
@@ -1998,8 +1998,9 @@
                 return;
             }
 
+            // Validate against the OT Planning Date Range
             if (!startDate || !endDate || new Date(date) < new Date(startDate) || new Date(date) > new Date(endDate)) {
-                showMessageBox('Date Range Error', `Public Holiday date must be within the OT Planning Date Range (${startDate} to ${endDate}).`);
+                showMessageBox('Date Range Error', `Public Holiday date must be within the OT Planning Date Range (${startDate || 'Not Set'} to ${endDate || 'Not Set'}). Please set a valid date range first.`);
                 return;
             }
 
@@ -2430,7 +2431,7 @@
                 a.click(); // Programmatically click the link
 
                 // Show a temporary success message
-                showMessageBox('Export Initiated', 'Your OT summary is being downloaded. Please check your downloads folder.', 'info');
+                showMessageBox('Export Initiated', 'Your OT summary is being downloaded. Please check your browser console for details.', 'info');
 
                 // Clean up the temporary URL and element after a short delay
                 // This delay can sometimes help ensure the download starts before cleanup
@@ -2884,23 +2885,14 @@
                 if (isRangeValid) {
                     publicHolidayDatePickerInstance.set('minDate', startDate);
                     publicHolidayDatePickerInstance.set('maxDate', endDate);
-                    // Only set the date if the current value is within the new valid range
-                    if (publicHolidayDateInput.value && new Date(publicHolidayDateInput.value) >= new Date(startDate) && new Date(publicHolidayDateInput.value) <= new Date(endDate)) {
-                        publicHolidayDatePickerInstance.setDate(publicHolidayDateInput.value);
-                    } else {
-                        publicHolidayDatePickerInstance.clear(); // Clear if outside new range
-                    }
                     publicHolidayDatePickerInstance.redraw();
-                    publicHolidayDateInput.disabled = false;
-                    setPublicHolidayTodayBtn.disabled = false;
-                    addPublicHolidayDateBtn.disabled = false;
-                    console.log("[updatePublicHolidayDatePicker] Public Holiday picker ENABLED.");
+                    console.log("[updatePublicHolidayDatePicker] Public Holiday picker min/max dates set based on valid range.");
                 } else {
-                    publicHolidayDatePickerInstance.clear(); // Clear selected date
-                    publicHolidayDateInput.disabled = true;
-                    setPublicHolidayTodayBtn.disabled = true;
-                    addPublicHolidayDateBtn.disabled = true;
-                    console.log("[updatePublicHolidayDatePicker] Public Holiday picker DISABLED.");
+                    // If range is not valid, clear min/max dates to allow any selection, but validation will occur on add.
+                    publicHolidayDatePickerInstance.set('minDate', null);
+                    publicHolidayDatePickerInstance.set('maxDate', null);
+                    publicHolidayDatePickerInstance.redraw();
+                    console.log("[updatePublicHolidayDatePicker] Public Holiday picker min/max dates cleared (no valid range).");
                 }
             } else {
                 console.warn("[updatePublicHolidayDatePicker] Flatpickr instance for public holiday date picker not initialized yet.");
