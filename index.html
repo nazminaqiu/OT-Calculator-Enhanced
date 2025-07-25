@@ -725,7 +725,7 @@
         </div>
     </div>
 
-    <!-- New Manual Entry Modal HTML -->
+    <!-- New Manual Entry Modal HTML (Original, now unused by addOTEntryBtn) -->
     <div id="addManualEntryModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="manualEntryModalTitle">
         <div class="manual-entry-modal-content">
             <h4 id="manualEntryModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Add New OT Entry</h4>
@@ -737,6 +737,36 @@
             <div class="modal-buttons">
                 <button id="cancelManualEntryBtn" class="btn btn-cancel">Cancel</button>
                 <button id="confirmManualEntryBtn" class="btn btn-primary">Add Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Detailed OT Entry Modal -->
+    <div id="addDetailedOTEntryModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailedEntryModalTitle">
+        <div class="manual-entry-modal-content">
+            <h4 id="detailedEntryModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Add Detailed OT Entry</h4>
+            <div class="input-group">
+                <label for="detailedEntryDate">Select Date</label>
+                <input type="date" id="detailedEntryDate" class="shadow-sm">
+                <div id="detailedEntryDateError" class="error-message text-left"></div>
+            </div>
+            <div class="input-group">
+                <label for="detailedEntryHours">Hours</label>
+                <input type="number" id="detailedEntryHours" value="2.0" min="0.5" step="0.5" class="shadow-sm">
+                <div id="detailedEntryHoursError" class="error-message text-left"></div>
+            </div>
+            <div class="input-group">
+                <label for="detailedEntryStartTime">Start Time</label>
+                <input type="time" id="detailedEntryStartTime" value="18:00" class="shadow-sm">
+                <div id="detailedEntryStartTimeError" class="error-message text-left"></div>
+            </div>
+            <div class="input-group">
+                <label for="detailedEntryEndTime">End Time (Calculated)</label>
+                <input type="time" id="detailedEntryEndTime" class="shadow-sm" readonly>
+            </div>
+            <div class="modal-buttons">
+                <button id="cancelDetailedEntryBtn" class="btn btn-cancel">Cancel</button>
+                <button id="confirmDetailedEntryBtn" class="btn btn-primary">Add Entry</button>
             </div>
         </div>
     </div>
@@ -832,10 +862,12 @@
         let auth;
         let userId;
         let isAuthReady = false; // Flag to ensure Firestore operations wait for auth
-        let manualDatePickerInstance; // Flatpickr instance for manual entry date picker
+        let manualDatePickerInstance; // Flatpickr instance for manual entry date picker (original, now unused)
         let publicHolidayDatePickerInstance; // Flatpickr instance for public holiday date picker
         let startDateModalPicker; // New: Flatpickr instance for start date in modal
         let endDateModalPicker;   // New: Flatpickr instance for end date in modal
+        let detailedDatePickerInstance; // NEW: Flatpickr instance for detailed entry date picker
+        let detailedStartTimePickerInstance; // NEW: Flatpickr instance for detailed entry start time
 
         // --- State Variables ---
         let otEntries = []; // Stores objects like { id, date, hours, type, startTime, endTime, isNew }
@@ -887,12 +919,26 @@
         let messageBoxConfirmBtn;
         let messageBoxCancelBtn;
 
+        // Original manual entry modal (now unused by addOTEntryBtn)
         let addManualEntryModal;
-        let manualEntryModalTitle; // New: Title for manual entry modal
+        let manualEntryModalTitle;
         let manualEntryDateInput;
         let manualEntryDateError;
         let confirmManualEntryBtn;
         let cancelManualEntryBtn;
+
+        // NEW: Detailed OT Entry Modal Elements
+        let addDetailedOTEntryModal;
+        let detailedEntryModalTitle;
+        let detailedEntryDate;
+        let detailedEntryDateError;
+        let detailedEntryHours;
+        let detailedEntryHoursError;
+        let detailedEntryStartTime;
+        let detailedEntryStartTimeError;
+        let detailedEntryEndTime;
+        let confirmDetailedEntryBtn;
+        let cancelDetailedEntryBtn;
 
         let dateRangeModal; // New: Date Range Modal
         let dateRangeModalTitle; // New: Date Range Modal Title
@@ -1031,7 +1077,7 @@
          */
         function getTargetOTPayValue() {
             if (targetOTPaySelect.value === 'custom') {
-                const customValue = parseFloat(customTargetOTPay.value);
+                const customValue = parseFloat(customTargetOTPayInput.value); // Corrected to customTargetOTPayInput
                 return isNaN(customValue) ? null : customValue;
             } else if (targetOTPaySelect.value === '') {
                 return null;
@@ -1171,7 +1217,7 @@
             otEntriesContainer.innerHTML = '';
             entryCounter = 0; // Reset counter when clearing
             noEntriesMessage.classList.remove('hidden'); // Show no entries message
-            updateManualEntryDatePicker(); // Refresh date picker after clearing
+            // No longer calling updateManualEntryDatePicker as it's not used by the new modal
         }
 
         /**
@@ -1265,6 +1311,11 @@
                             newRow.classList.add('highlight-new');
                             setTimeout(() => {
                                 newRow.classList.remove('highlight-new');
+                                // Remove the isNew flag after highlighting
+                                const entryIndex = otEntries.findIndex(e => e.id === entryId);
+                                if (entryIndex !== -1) {
+                                    delete otEntries[entryIndex].isNew;
+                                }
                             }, 2000);
                         }
 
@@ -1366,8 +1417,6 @@
                     otEntriesContainer.appendChild(groupSection);
                 }
             });
-            // The manual entry date picker is updated separately in updateManualEntryDatePicker
-            // No need to call updateManualEntryDatePicker here as it's called after renderOTEntries.
         }
 
 
@@ -1375,20 +1424,20 @@
          * Adds a new OT entry to the `otEntries` array and then re-renders the UI.
          * This is for manual "Add OT Entry" button clicks.
          * @param {string} selectedDate - The date selected by the user from the modal.
+         * @param {number} hours - The hours duration.
+         * @param {string} startTime - The start time.
+         * @param {string} endTime - The end time.
          */
-        function addNewManualOTEntry(selectedDate) {
-            // This function is now called AFTER date validation in the modal
+        function addNewDetailedOTEntry(selectedDate, hours, startTime, endTime) {
             const newEntry = {
                 id: `ot-entry-${entryCounter++}`, // Generate a new unique ID
                 date: selectedDate,
-                hours: 0,
+                hours: hours,
                 type: getDefaultOTTypeForDate(selectedDate), // Auto-set type based on date
-                startTime: '', // Will be calculated by calculateSuggestedTimes
-                endTime: '',    // Will be calculated by calculateSuggestedTimes
+                startTime: startTime,
+                endTime: endTime,
                 isNew: true     // Mark as new
             };
-            // Calculate initial times for the new entry
-            calculateSuggestedTimes(newEntry);
             otEntries.push(newEntry);
             renderOTEntries(); // Re-render the entire list
             calculateAndDisplayResults(); // Recalculate after adding an entry
@@ -1398,7 +1447,6 @@
                 const newRowElement = otEntriesContainer.querySelector(`[data-id="${newEntry.id}"]`);
                 if (newRowElement) {
                     newRowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // The highlight-new class is now added inside renderOTEntries
                 }
             }, 100); // Small delay to ensure DOM update
         }
@@ -1771,8 +1819,7 @@
                         const hoursToPreciselyAdd = remainingPayNeeded / (hourlyRate * currentMultiplier);
                         const finalHoursToAdd = Math.min(hoursToPreciselyAdd, hoursToConsider, maxHoursForThisDay);
                         if (finalHoursToAdd > 0) {
-                            // FIX: Ensure step.type is used here
-                            addOrUpdateOTEntry(day.date, finalHoursToAdd, step.type); // Changed `typeToUse` to `step.type`
+                            addOrUpdateOTEntry(day.date, finalHoursToAdd, step.type);
                             currentAllocatedPay = targetOTPay;
                             hoursAllocatedPerDay[day.date] += finalHoursToAdd;
                             if (step.type === 'Rest Day (Sunday) — 1st 8h') {
@@ -1850,8 +1897,7 @@
 
                     const potentialPay = calculateOT(hourlyRate, hoursToConsider, typeToUse, day.date);
                     if (currentAllocatedPay + potentialPay <= targetOTPay + CONFIG.ALLOCATION_PRECISION) {
-                        // FIX: Ensure hoursToConsider is used here
-                        addOrUpdateOTEntry(day.date, hoursToConsider, typeToUse); // Changed `typeToUse` to `step.type`
+                        addOrUpdateOTEntry(day.date, hoursToConsider, typeToUse);
                         currentAllocatedPay += potentialPay;
                         hoursAllocatedPerDay[day.date] += hoursToConsider;
                         if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
@@ -1892,7 +1938,11 @@
             const lastEndTimeOnDay = {}; // To track end time for chaining on the same day
             otEntries.forEach(entry => {
                 let prevEndTime = lastEndTimeOnDay[entry.date] || null;
-                calculateSuggestedTimes(entry, prevEndTime);
+                // Only calculate if entry.startTime is empty (auto-allocated)
+                // If startTime is already set (manual entry), use it
+                if (!entry.startTime || !entry.endTime) {
+                    calculateSuggestedTimes(entry, prevEndTime);
+                }
                 lastEndTimeOnDay[entry.date] = entry.endTime; // Update last end time for this day
             });
         }
@@ -2166,20 +2216,34 @@
                 return;
             }
 
-            clearOTEntries(); // Clear existing entries before auto-allocating
+            // DO NOT clear all entries here. Preserve existing ones.
+            // clearOTEntries();
 
             const hourlyRate = calculateHourlyRate(basicSalary);
             let currentAllocatedPay = 0;
-            let currentAllocatedMonthlyHours = 0; // Track monthly hours during allocation
+
+            // Initialize maps to track hours allocated per day and Sunday 0.5x hours
+            const hoursAllocatedPerDay = {};
+            const sundayFirst8hAllocated = new Map();
+
+            // Pre-populate hoursAllocatedPerDay and sundayFirst8hAllocated with existing entries
+            otEntries.forEach(entry => {
+                if (!hoursAllocatedPerDay[entry.date]) {
+                    hoursAllocatedPerDay[entry.date] = 0;
+                }
+                hoursAllocatedPerDay[entry.date] += parseFloat(entry.hours);
+
+                if (entry.type === 'Rest Day (Sunday) — 1st 8h') {
+                    sundayFirst8hAllocated.set(entry.date, (sundayFirst8hAllocated.get(entry.date) || 0) + parseFloat(entry.hours));
+                }
+                // Also add existing pay to currentAllocatedPay if target-driven
+                if (selectedAllocationStrategy === 'Target-Driven') {
+                    currentAllocatedPay += calculateOT(hourlyRate, parseFloat(entry.hours), entry.type, entry.date);
+                }
+            });
+
 
             const availableDays = initializePlanningDays(startDate, endDate);
-
-            // Initialize a map to track hours allocated per day to enforce MAX_DAILY_OT_HOURS
-            const hoursAllocatedPerDay = {};
-            availableDays.forEach(day => { hoursAllocatedPerDay[day.date] = 0; });
-
-            // Keep track of total 0.5x hours allocated per Sunday
-            const sundayFirst8hAllocated = new Map();
 
             // Get the base allocation steps and apply preset overrides
             let currentAllocationSteps = JSON.parse(JSON.stringify(CONFIG.ALLOCATION_STEPS));
@@ -2200,6 +2264,16 @@
                     autoAllocateLoading.removeAttribute('aria-live');
                     return;
                 }
+                // Calculate remaining target pay
+                const remainingTargetPay = targetOTPay - currentAllocatedPay;
+                if (remainingTargetPay <= CONFIG.ALLOCATION_PRECISION) { // If target already met or exceeded
+                    showMessageBox('Target Already Met', 'Your target OT pay has already been met or exceeded with existing entries. No further auto-allocation needed.');
+                    autoAllocateLoading.classList.add('hidden');
+                    autoAllocateLoading.removeAttribute('aria-live');
+                    calculateAndDisplayResults();
+                    return;
+                }
+
                 // --- Target-based Allocation ---
                 currentAllocatedPay = performAllocationPass(availableDays, targetOTPay, currentAllocatedPay, hourlyRate, currentAllocationSteps, hoursAllocatedPerDay, sundayFirst8hAllocated);
 
@@ -2219,7 +2293,7 @@
                 availableDays.sort((a, b) => new Date(a.date) - new Date(b.date)); // Ensure sorted by date for consistent allocation
 
                 for (const day of availableDays) {
-                    let maxHoursRemaining = CONFIG.MAX_DAILY_OT_HOURS - hoursAllocatedPerDay[day.date];
+                    let maxHoursRemaining = CONFIG.MAX_DAILY_OT_HOURS - (hoursAllocatedPerDay[day.date] || 0); // Use 0 if no hours yet
                     if (maxHoursRemaining <= 0) continue;
 
                     // Iterate through applicable steps for the current day
@@ -2236,14 +2310,14 @@
                             hoursToAllocate = getRandomHours(step.minHours, step.maxHours);
                             hoursToAllocate = Math.min(hoursToAllocate, maxHoursRemaining, remainingFor1st8h);
                         } else if (step.type === 'Rest Day (Sunday) — after 8h') {
-                            const totalHoursOnSunday = hoursAllocatedPerDay[day.date];
+                            const totalHoursOnSunday = (hoursAllocatedPerDay[day.date] || 0);
                             if (totalHoursOnSunday < 8) {
                                 continue; // Skip 2.0x if 0.5x hasn't been fully allocated yet
                             }
                             hoursToAllocate = getRandomHours(step.minHours, step.maxHours);
                             hoursToAllocate = Math.min(hoursToAllocate, maxHoursRemaining);
                         } else if (step.hours !== undefined) { // Fixed hours (e.g., if we had any other fixed hours type)
-                            hoursToAllocate = Math.min(step.hours - hoursAllocatedPerDay[day.date], maxHoursRemaining);
+                            hoursToAllocate = Math.min(step.hours - (hoursAllocatedPerDay[day.date] || 0), maxHoursRemaining);
                         } else { // Range-based hours for other types
                             hoursToAllocate = getRandomHours(step.minHours, step.maxHours);
                             hoursToAllocate = Math.min(hoursToAllocate, maxHoursRemaining);
@@ -2251,7 +2325,7 @@
 
                         if (hoursToAllocate > 0) {
                             addOrUpdateOTEntry(day.date, hoursToAllocate, step.type);
-                            hoursAllocatedPerDay[day.date] += hoursToAllocate;
+                            hoursAllocatedPerDay[day.date] = (hoursAllocatedPerDay[day.date] || 0) + hoursToAllocate;
                             if (step.type === 'Rest Day (Sunday) — 1st 8h') {
                                 sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + hoursToAllocate);
                             }
@@ -2611,10 +2685,10 @@
         }
 
         /**
-         * Shows the modal for adding a new manual OT entry.
-         * Initializes or updates the Flatpickr instance.
+         * Shows the modal for adding a new detailed OT entry.
+         * Initializes or updates the Flatpickr and time picker instances.
          */
-        function showAddEntryModal() {
+        function showAddDetailedEntryModal() {
             const startDate = startDateInput.value;
             const endDate = endDateInput.value;
 
@@ -2623,15 +2697,13 @@
                 return;
             }
 
-            manualEntryDateError.textContent = ''; // Clear previous errors
-            manualEntryDateInput.classList.remove('input-error'); // Clear error styling
-
-            // Check if flatpickr is available globally
-            if (typeof window.flatpickr === 'undefined') {
-                console.error("Flatpickr library not loaded. Cannot initialize date picker.");
-                showMessageBox('Error', 'Date picker library not loaded. Please try again.');
-                return;
-            }
+            // Clear previous errors and styling
+            detailedEntryDateError.textContent = '';
+            detailedEntryHoursError.textContent = '';
+            detailedEntryStartTimeError.textContent = '';
+            detailedEntryDate.classList.remove('input-error');
+            detailedEntryHours.classList.remove('input-error');
+            detailedEntryStartTime.classList.remove('input-error');
 
             // Calculate available dates before opening the modal
             const allDatesInRange = [];
@@ -2647,66 +2719,124 @@
                 return !otEntries.some(entry => entry.date === dateString);
             });
 
-            console.log("Available dates for manual entry:", availableDatesForSelection);
-            console.log("Number of available dates:", availableDatesForSelection.length);
-
-
             if (availableDatesForSelection.length === 0) {
                 showMessageBox('No Available Dates', 'All dates in the current planning range already have an OT entry. Please adjust your date range or clear existing entries to add more.');
                 return; // Prevent modal from opening
             }
 
-            // Initialize or update Flatpickr
-            if (!manualDatePickerInstance) {
-                manualDatePickerInstance = window.flatpickr(manualEntryDateInput, {
+            // Initialize or update Flatpickr for date
+            if (!detailedDatePickerInstance) {
+                detailedDatePickerInstance = window.flatpickr(detailedEntryDate, {
                     dateFormat: "Y-m-d",
-                    minDate: startDate, // Enforce min date from planning range
-                    maxDate: endDate,   // Enforce max date from planning range
-                    disable: otEntries.map(entry => entry.date), // Disable all dates already taken
-                    defaultDate: availableDatesForSelection[0] || getTodayDateString(), // Set default to first available date or today
+                    minDate: startDate,
+                    maxDate: endDate,
+                    disable: otEntries.map(entry => entry.date),
+                    defaultDate: availableDatesForSelection[0] || getTodayDateString(),
                     onChange: function(selectedDates, dateStr, instance) {
-                        manualEntryDateError.textContent = '';
-                        manualEntryDateInput.classList.remove('input-error');
+                        detailedEntryDateError.textContent = '';
+                        detailedEntryDate.classList.remove('input-error');
                     }
                 });
             } else {
-                manualDatePickerInstance.set('minDate', startDate); // Update min date
-                manualDatePickerInstance.set('maxDate', endDate);   // Update max date
-                manualDatePickerInstance.set('disable', otEntries.map(entry => entry.date)); // Update the disabled dates
-                manualDatePickerInstance.setDate(availableDatesForSelection[0] || getTodayDateString()); // Reset to first available date or today
-                manualDatePickerInstance.redraw();
+                detailedDatePickerInstance.set('minDate', startDate);
+                detailedDatePickerInstance.set('maxDate', endDate);
+                detailedDatePickerInstance.set('disable', otEntries.map(entry => entry.date));
+                detailedDatePickerInstance.setDate(availableDatesForSelection[0] || getTodayDateString());
+                detailedDatePickerInstance.redraw();
             }
 
-            addManualEntryModal.classList.remove('hidden');
-            // Store the currently focused element before showing the modal
+            // Initialize or update Flatpickr for time
+            if (!detailedStartTimePickerInstance) {
+                detailedStartTimePickerInstance = window.flatpickr(detailedEntryStartTime, {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: "H:i",
+                    time_24hr: true,
+                    defaultHour: 18, // Default to 6 PM
+                    defaultMinute: 0,
+                    minuteIncrement: 15,
+                    onChange: function(selectedDates, dateStr, instance) {
+                        detailedEntryStartTimeError.textContent = '';
+                        detailedEntryStartTime.classList.remove('input-error');
+                        updateDetailedEntryEndTime();
+                    }
+                });
+            } else {
+                detailedStartTimePickerInstance.setDate('18:00', false); // Reset to default 6 PM
+            }
+
+            // Set default hours and calculate end time
+            detailedEntryHours.value = '2.0';
+            updateDetailedEntryEndTime();
+
+            addDetailedOTEntryModal.classList.remove('hidden');
             window.lastFocusedElement = document.activeElement;
-            // Focus the first interactive element in the modal
-            manualEntryDateInput.focus();
+            detailedEntryDate.focus(); // Focus the date input first
         }
 
         /**
-         * Hides the modal for adding a new manual OT entry.
+         * Hides the detailed OT entry modal.
          */
-        function hideAddEntryModal() {
-            addManualEntryModal.classList.add('hidden');
-            // Return focus to the element that triggered the modal
+        function hideAddDetailedEntryModal() {
+            addDetailedOTEntryModal.classList.add('hidden');
             if (window.lastFocusedElement) {
                 window.lastFocusedElement.focus();
             }
         }
 
         /**
-         * Validates the selected date in the manual entry modal and adds the entry if valid.
+         * Updates the calculated end time in the detailed entry modal.
          */
-        function handleConfirmManualEntry() {
-            const selectedDate = manualEntryDateInput.value;
-            manualEntryDateError.textContent = ''; // Clear previous errors
-            manualEntryDateInput.classList.remove('input-error');
+        function updateDetailedEntryEndTime() {
+            const startTime = detailedEntryStartTime.value;
+            const hours = parseFloat(detailedEntryHours.value);
+
+            if (startTime && !isNaN(hours) && hours > 0) {
+                detailedEntryEndTime.value = addHoursToTime(startTime, hours);
+            } else {
+                detailedEntryEndTime.value = '';
+            }
+        }
+
+        /**
+         * Handles confirming the detailed OT entry from the modal.
+         */
+        function handleConfirmDetailedEntry() {
+            const selectedDate = detailedEntryDate.value;
+            const hours = parseFloat(detailedEntryHours.value);
+            const startTime = detailedEntryStartTime.value;
+            const endTime = detailedEntryEndTime.value; // Get the calculated end time
+
+            // Clear previous errors
+            detailedEntryDateError.textContent = '';
+            detailedEntryHoursError.textContent = '';
+            detailedEntryStartTimeError.textContent = '';
+            detailedEntryDate.classList.remove('input-error');
+            detailedEntryHours.classList.remove('input-error');
+            detailedEntryStartTime.classList.remove('input-error');
+
+            let isValid = true;
 
             if (!selectedDate) {
-                manualEntryDateError.textContent = 'Please select a date.';
-                manualEntryDateInput.classList.add('input-error');
-                return;
+                detailedEntryDateError.textContent = 'Please select a date.';
+                detailedEntryDate.classList.add('input-error');
+                isValid = false;
+            }
+
+            if (isNaN(hours) || hours <= 0) {
+                detailedEntryHoursError.textContent = 'Hours must be a positive number.';
+                detailedEntryHours.classList.add('input-error');
+                isValid = false;
+            } else if (hours > CONFIG.MAX_DAILY_OT_HOURS) {
+                detailedEntryHoursError.textContent = `Max hours per day is ${CONFIG.MAX_DAILY_OT_HOURS}.`;
+                detailedEntryHours.classList.add('input-error');
+                isValid = false;
+            }
+
+            if (!startTime) {
+                detailedEntryStartTimeError.textContent = 'Please set a start time.';
+                detailedEntryStartTime.classList.add('input-error');
+                isValid = false;
             }
 
             const startDate = startDateInput.value;
@@ -2715,24 +2845,27 @@
             const startDateTime = new Date(startDate).getTime();
             const endDateTime = new Date(endDate).getTime();
 
-            // Double check validation for date range
             if (selectedDateTime < startDateTime || selectedDateTime > endDateTime) {
-                manualEntryDateError.textContent = `Date must be within ${startDate} and ${endDate}.`;
-                manualEntryDateInput.classList.add('input-error');
-                return;
+                detailedEntryDateError.textContent = `Date must be within ${startDate} and ${endDate}.`;
+                detailedEntryDate.classList.add('input-error');
+                isValid = false;
             }
 
             // Check for duplicate date across ALL existing entries
             const isDateAlreadyUsed = otEntries.some(entry => entry.date === selectedDate);
             if (isDateAlreadyUsed) {
-                manualEntryDateError.textContent = `An OT entry already exists for ${selectedDate}. Each date can only have one OT entry.`;
-                manualEntryDateInput.classList.add('input-error');
-                return;
+                detailedEntryDateError.textContent = `An OT entry already exists for ${selectedDate}. Each date can only have one OT entry.`;
+                detailedEntryDate.classList.add('input-error');
+                isValid = false;
             }
 
-            addNewManualOTEntry(selectedDate); // Now pass the selected date
-            hideAddEntryModal();
-            showMessageBox('Entry Added', `New OT entry added for ${selectedDate}.`);
+            if (!isValid) {
+                return; // Stop if any validation fails
+            }
+
+            addNewDetailedOTEntry(selectedDate, hours, startTime, endTime);
+            hideAddDetailedEntryModal();
+            showMessageBox('Entry Added', `New OT entry added for ${selectedDate} (${hours}h, ${startTime}-${endTime}).`);
         }
 
         /**
@@ -2740,11 +2873,13 @@
          * This function is called when the date range or OT entries change.
          */
         function updateManualEntryDatePicker() {
-            if (manualDatePickerInstance) {
-                manualDatePickerInstance.set('minDate', startDateInput.value);
-                manualDatePickerInstance.set('maxDate', endDateInput.value);
-                manualDatePickerInstance.set('disable', otEntries.map(entry => entry.date)); // Pass array of disabled dates
-                manualDatePickerInstance.redraw(); // Redraw to apply new disable rules
+            // This function is now specifically for the detailed entry modal's date picker
+            if (detailedDatePickerInstance) {
+                detailedDatePickerInstance.set('minDate', startDateInput.value);
+                detailedDatePickerInstance.set('maxDate', endDateInput.value);
+                // Disable dates that already have an entry
+                detailedDatePickerInstance.set('disable', otEntries.map(entry => entry.date));
+                detailedDatePickerInstance.redraw(); // Redraw to apply new disable rules
             }
         }
 
@@ -2946,12 +3081,26 @@
             messageBoxConfirmBtn = document.getElementById('messageBoxConfirmBtn');
             messageBoxCancelBtn = document.getElementById('messageBoxCancelBtn');
 
+            // Original manual entry modal (now unused by addOTEntryBtn)
             addManualEntryModal = document.getElementById('addManualEntryModal');
-            manualEntryModalTitle = document.getElementById('manualEntryModalTitle'); // Assign new element
+            manualEntryModalTitle = document.getElementById('manualEntryModalTitle');
             manualEntryDateInput = document.getElementById('manualEntryDate');
             manualEntryDateError = document.getElementById('manualEntryDateError');
             confirmManualEntryBtn = document.getElementById('confirmManualEntryBtn');
             cancelManualEntryBtn = document.getElementById('cancelManualEntryBtn');
+
+            // NEW: Detailed OT Entry Modal Elements
+            addDetailedOTEntryModal = document.getElementById('addDetailedOTEntryModal');
+            detailedEntryModalTitle = document.getElementById('detailedEntryModalTitle');
+            detailedEntryDate = document.getElementById('detailedEntryDate');
+            detailedEntryDateError = document.getElementById('detailedEntryDateError');
+            detailedEntryHours = document.getElementById('detailedEntryHours');
+            detailedEntryHoursError = document.getElementById('detailedEntryHoursError');
+            detailedEntryStartTime = document.getElementById('detailedEntryStartTime');
+            detailedEntryStartTimeError = document.getElementById('detailedEntryStartTimeError');
+            detailedEntryEndTime = document.getElementById('detailedEntryEndTime');
+            confirmDetailedEntryBtn = document.getElementById('confirmDetailedEntryBtn');
+            cancelDetailedEntryBtn = document.getElementById('cancelDetailedEntryBtn');
 
             dateRangeModal = document.getElementById('dateRangeModal'); // New: Assign modal
             dateRangeModalTitle = document.getElementById('dateRangeModalTitle'); // New: Assign title
@@ -3024,12 +3173,12 @@
             // These listeners are now triggered by the modal's confirm action
             startDateInput.addEventListener('change', () => {
                 calculateAndDisplayResults();
-                updateManualEntryDatePicker(); // Update OT date picker constraints
+                updateManualEntryDatePicker(); // Update detailed OT date picker constraints
                 updatePublicHolidayDatePicker(); // Update Public Holiday date picker constraints
             });
             endDateInput.addEventListener('change', () => {
                 calculateAndDisplayResults();
-                updateManualEntryDatePicker(); // Update OT date picker constraints
+                updateManualEntryDatePicker(); // Update detailed OT date picker constraints
                 updatePublicHolidayDatePicker(); // Update Public Holiday date picker constraints
             });
 
@@ -3089,10 +3238,13 @@
                 });
             });
 
-            // Event listeners for manual entry modal buttons (moved here to ensure functions are defined)
-            addOTEntryBtn.addEventListener('click', showAddEntryModal);
-            confirmManualEntryBtn.addEventListener('click', handleConfirmManualEntry);
-            cancelManualEntryBtn.addEventListener('click', hideAddEntryModal);
+            // Event listeners for NEW detailed entry modal buttons
+            addOTEntryBtn.addEventListener('click', showAddDetailedEntryModal);
+            confirmDetailedEntryBtn.addEventListener('click', handleConfirmDetailedEntry);
+            cancelDetailedEntryBtn.addEventListener('click', hideAddDetailedEntryModal);
+            detailedEntryHours.addEventListener('input', updateDetailedEntryEndTime);
+            detailedEntryStartTime.addEventListener('input', updateDetailedEntryEndTime);
+
 
             // New: Event listeners for date range modal buttons
             confirmDateRangeBtn.addEventListener('click', handleConfirmDateRange);
