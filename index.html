@@ -440,6 +440,14 @@
             background-color: #e5e7eb; /* Gray-200 */
             color: #4b5563; /* Gray-700 */
         }
+
+        /* New styles for allocation choice modal */
+        .allocation-choice-modal .modal-buttons button {
+            width: 100%; /* Make buttons full width in modal */
+        }
+        .allocation-choice-modal .modal-buttons {
+            flex-direction: column; /* Stack buttons vertically */
+        }
     </style>
 </head>
 <body>
@@ -471,7 +479,8 @@
                                     </ul>
                                 </li>
                                 <li>Select a **Workload Preset** (Light, Moderate, Heavy) to guide auto-allocation.</li>
-                                <li>Click "Auto Allocate Hours" to automatically generate entries.</li>
+                                <li>Click "Auto Allocate Hours" to automatically generate entries. You will be prompted to either **clear existing entries** or **fill remaining hours**.</li>
+                                <li>Click **"Reset & Re-allocate All"** to clear all entries and start a fresh auto-allocation.</li>
                                 <li>Click "Add OT Entry" to manually add entries for specific dates.</li>
                                 <li>You can edit hours, dates, and types for each entry.</li>
                                 <li>"Save Data" and "Load Data" buttons allow you to persist your entries.</li>
@@ -631,13 +640,22 @@
                     <!-- Details will be inserted here by JavaScript -->
                 </div>
 
-                <button id="autoAllocateBtn" class="btn btn-secondary w-full mb-4" aria-label="Auto allocate hours">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
-                    </svg>
-                    Auto Allocate Hours
-                    <span id="autoAllocateLoading" class="loading-indicator hidden" aria-live="polite">Allocating...</span>
-                </button>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                    <button id="autoAllocateBtn" class="btn btn-secondary flex-grow" aria-label="Auto allocate hours">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-8a1 1 0 011-1h3a1 1 0 110 2H4a1 1 0 01-1-1zm11 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        Auto Allocate Hours
+                        <span id="autoAllocateLoading" class="loading-indicator hidden" aria-live="polite">Allocating...</span>
+                    </button>
+                    <button id="resetAndReallocateBtn" class="btn btn-danger flex-grow" aria-label="Reset all and re-allocate">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.118a1 1 0 01-.293.707l-2.118 2.118A1 1 0 012 8v8a2 2 0 002 2h12a2 2 0 002-2V8a1 1 0 01-.293-.707l-2.118-2.118A1 1 0 0115 5.118V3a1 1 0 011-1h-2a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H4zm2 5V4h8v3H6zm-2 4h12V9H4v2zm0 2h12v3H4v-3z" clip-rule="evenodd" />
+                        </svg>
+                        Reset & Re-allocate All
+                    </button>
+                </div>
+
                 <div id="otEntriesContainer">
                     <!-- OT entry rows will be added here by JavaScript -->
                     <p id="noEntriesMessage" class="no-entries-message hidden">No OT entries yet. Click "Add OT Entry" or "Auto Allocate Hours" to get started!</p>
@@ -794,6 +812,25 @@
         </div>
     </div>
 
+    <!-- NEW: Allocation Choice Modal -->
+    <div id="allocationChoiceModal" class="manual-entry-modal hidden allocation-choice-modal" role="dialog" aria-modal="true" aria-labelledby="allocationChoiceModalTitle">
+        <div class="manual-entry-modal-content">
+            <h4 id="allocationChoiceModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Auto-Allocation Options</h4>
+            <p class="text-gray-700 mb-6">How would you like to allocate overtime hours?</p>
+            <div class="modal-buttons">
+                <button id="clearAndAllocateBtn" class="btn btn-danger">
+                    Clear All & Re-allocate
+                </button>
+                <button id="fillRemainingBtn" class="btn btn-primary mt-4">
+                    Fill Remaining Hours
+                </button>
+                <button id="cancelAllocationChoiceBtn" class="btn btn-secondary mt-4">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // Firebase SDK imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -897,6 +934,7 @@
         let addOTEntryBtn;
         let autoAllocateBtn;
         let autoAllocateLoading;
+        let resetAndReallocateBtn; // NEW: Reset & Re-allocate All button
         let clearAllEntriesBtn;
         let calculateBtn;
         let saveDataBtn;
@@ -948,6 +986,11 @@
         let endDateModalError;   // New: Error for end date in modal
         let confirmDateRangeBtn; // New: Confirm button for date range modal
         let cancelDateRangeBtn; // New: Cancel button for date range modal
+
+        let allocationChoiceModal; // NEW: Allocation Choice Modal
+        let clearAndAllocateBtn;   // NEW: Clear & Re-allocate button
+        let fillRemainingBtn;      // NEW: Fill Remaining button
+        let cancelAllocationChoiceBtn; // NEW: Cancel button for choice modal
 
         let setStartDateTodayBtn;
         let setEndDateTodayBtn;
@@ -1250,12 +1293,17 @@
          * This function is responsible for updating the display, not modifying the `otEntries` array itself.
          */
         function renderOTEntries() {
+            console.log("--- Starting renderOTEntries ---");
+            console.log("otEntries at render time:", JSON.stringify(otEntries));
+
             otEntriesContainer.innerHTML = ''; // Clear current UI
 
             if (otEntries.length === 0) {
                 noEntriesMessage.classList.remove('hidden');
+                console.log("No entries found, showing 'No entries message'.");
             } else {
                 noEntriesMessage.classList.add('hidden');
+                console.log(`${otEntries.length} entries found, hiding 'No entries message'.`);
             }
 
             // Augment entries with a displayType for grouping
@@ -1340,7 +1388,8 @@
                             <div class="flex gap-4">
                                 <div class="input-group flex-1">
                                     <label for="${entryId}-start-time">Start Time</label>
-                                    <input type="time" id="${entryId}-start-time" value="${entry.startTime}" class="shadow-sm" readonly>
+                                    <input type="time" id="${entryId}-start-time" value="${entry.startTime}" class="shadow-sm"> <!-- Removed readonly -->
+                                    <div id="${entryId}-start-time-error" class="error-message"></div>
                                 </div>
                                 <div class="input-group flex-1">
                                     <label for="${entryId}-end-time">End Time</label>
@@ -1395,15 +1444,35 @@
                             });
                         }
 
+                        // Initialize Flatpickr for start time input
+                        const startTimeInput = newRow.querySelector(`#${entryId}-start-time`);
+                        if (startTimeInput) {
+                            window.flatpickr(startTimeInput, {
+                                enableTime: true,
+                                noCalendar: true,
+                                dateFormat: "H:i",
+                                time_24hr: true,
+                                minuteIncrement: 15,
+                                onChange: function(selectedDates, dateStr, instance) {
+                                    updateOTEntry(entryId, 'startTime', dateStr);
+                                }
+                            });
+                        }
+
                         // Re-attach event listeners for hours and type
                         const hoursInput = newRow.querySelector(`#${entryId}-hours`);
                         const hoursError = newRow.querySelector(`#${entryId}-hours-error`);
                         hoursInput.addEventListener('input', (e) => {
                             const value = parseFloat(e.target.value);
+                            // Validation for hours
                             if (isNaN(value) || value < 0) {
                                 hoursInput.classList.add('input-error');
                                 hoursError.textContent = 'Hours must be a positive number.';
-                            } else {
+                            } else if (value > CONFIG.MAX_DAILY_OT_HOURS) {
+                                hoursInput.classList.add('input-error');
+                                hoursError.textContent = `Max hours per day is ${CONFIG.MAX_DAILY_OT_HOURS}.`;
+                            }
+                            else {
                                 hoursInput.classList.remove('input-error');
                                 hoursError.textContent = '';
                                 updateOTEntry(entryId, 'hours', value);
@@ -1417,6 +1486,7 @@
                     otEntriesContainer.appendChild(groupSection);
                 }
             });
+            console.log("--- Finished renderOTEntries ---");
         }
 
 
@@ -1454,7 +1524,7 @@
         /**
          * Updates an OT entry in the otEntries array and its corresponding DOM elements.
          * @param {string} id - The ID of the entry to update.
-         * @param {string} field - The field to update ('date', 'hours', 'type').
+         * @param {string} field - The field to update ('date', 'hours', 'type', 'startTime').
          * @param {*} value - The new value for the field.
          */
         function updateOTEntry(id, field, value) {
@@ -1485,27 +1555,20 @@
                 otEntries[index].type = getDefaultOTTypeForDate(newDate); // Auto-adjust type based on new date
                 console.log(`Updated entry ${id}: date=${otEntries[index].date}, type=${otEntries[index].type}`);
 
-            } else {
+            } else if (field === 'hours') {
+                otEntries[index].hours = parseFloat(value);
+                // Recalculate end time if hours change
+                otEntries[index].endTime = addHoursToTime(otEntries[index].startTime, otEntries[index].hours);
+            } else if (field === 'startTime') {
+                otEntries[index].startTime = value;
+                // Recalculate end time if start time changes
+                otEntries[index].endTime = addHoursToTime(otEntries[index].startTime, otEntries[index].hours);
+            } else { // For 'type' field
                 otEntries[index][field] = value;
             }
 
-            // Recalculate times for the updated entry
-            // Find any preceding entry on the same day to chain times
-            const entriesOnSameDay = otEntries.filter(e => e.date === otEntries[index].date).sort((a, b) => {
-                // Simple sort by ID for consistent order if times are not yet set
-                return parseInt(a.id.split('-')[2]) - parseInt(b.id.split('-')[2]);
-            });
-
-            let prevEndTimeForDay = null;
-            for (let i = 0; i < entriesOnSameDay.length; i++) {
-                if (entriesOnSameDay[i].id === id) {
-                    calculateSuggestedTimes(otEntries[index], prevEndTimeForDay);
-                    break;
-                }
-                prevEndTimeForDay = entriesOnSameDay[i].endTime;
-            }
-
             // Always re-render the entire list if date or type changed, as this affects grouping
+            // For hours/startTime changes, we also re-render to update endTime and ensure consistency
             renderOTEntries();
             calculateAndDisplayResults(); // Recalculate after any entry update
         }
@@ -1705,30 +1768,40 @@
         }
 
         /**
-         * Adds or updates an OT entry in the otEntries array.
-         * If an entry for the given date and type already exists, its hours are updated.
-         * Otherwise, a new entry is added.
+         * Adds or updates an OT entry in the otEntries array for auto-allocation.
+         * This function assumes one OT entry per date. If an entry for the given date
+         * already exists, its hours are updated. Otherwise, a new entry is added.
+         * The type for new entries is determined by getDefaultOTTypeForDate.
          * @param {string} date - The date of the OT entry.
          * @param {number} hours - The hours to add/set for the OT entry.
-         * @param {string} type - The type of OT.
+         * @param {string} [suggestedTypeFromAllocationStep] - (Optional) The type suggested by the allocation step. This is mostly for internal consistency during allocation, but the actual stored type for new entries is derived from the date.
          */
-        function addOrUpdateOTEntry(date, hours, type) {
-            const existingEntry = otEntries.find(entry => entry.date === date && entry.type === type);
+        function addOrUpdateOTEntry(date, hours, suggestedTypeFromAllocationStep) { // Kept suggestedTypeFromAllocationStep for clarity, though not directly used for stored type
+            console.log(`[addOrUpdateOTEntry] Attempting to add/update for date: ${date}, hours: ${hours}, suggestedType: ${suggestedTypeFromAllocationStep}`);
+            const existingEntryIndex = otEntries.findIndex(entry => entry.date === date);
 
-            if (existingEntry) {
+            if (existingEntryIndex !== -1) {
                 // Update existing entry's hours
-                existingEntry.hours += hours;
+                otEntries[existingEntryIndex].hours = parseFloat((otEntries[existingEntryIndex].hours + hours).toFixed(1)); // Ensure precision
+                // Recalculate end time for updated entry
+                otEntries[existingEntryIndex].endTime = addHoursToTime(otEntries[existingEntryIndex].startTime, otEntries[existingEntryIndex].hours);
+                console.log(`[addOrUpdateOTEntry] Updated existing entry for ${date}. New hours: ${otEntries[existingEntryIndex].hours}. Current otEntries length: ${otEntries.length}`);
             } else {
                 // Add new entry
-                otEntries.push({
+                const newEntry = {
                     id: `ot-entry-${entryCounter++}`,
                     date: date,
-                    hours: hours,
-                    type: type,
-                    startTime: '', // Will be calculated later
-                    endTime: '',    // Will be calculated later
-                    // Do NOT set isNew: true here, as per user request for auto-allocated entries
-                });
+                    hours: parseFloat(hours.toFixed(1)), // Ensure precision
+                    // For new entries, determine the type based on the date, considering public holidays.
+                    // This ensures consistency with how manual entries are typed.
+                    type: getDefaultOTTypeForDate(date),
+                    startTime: '', // Will be calculated by calculateAndAssignTimes
+                    endTime: '',    // Will be calculated by calculateAndAssignTimes
+                };
+                // Calculate initial times for new entry
+                calculateSuggestedTimes(newEntry);
+                otEntries.push(newEntry);
+                console.log(`[addOrUpdateOTEntry] Added new entry for ${date}. Hours: ${newEntry.hours}. Type: ${newEntry.type}. Current otEntries length: ${otEntries.length}`);
             }
         }
 
@@ -1752,6 +1825,7 @@
             }
             // Shuffle days to distribute OT more evenly across the period, rather than front-loading
             days.sort(() => Math.random() - 0.5);
+            console.log("Initialized planning days:", days.map(d => d.date));
             return days;
         }
 
@@ -1767,26 +1841,43 @@
          * @returns {number} The updated currentAllocatedPay.
          */
         function performAllocationPass(availableDays, targetOTPay, currentAllocatedPay, hourlyRate, allocationSteps, hoursAllocatedPerDay, sundayFirst8hAllocated) {
+            console.log("[performAllocationPass] Starting pass. Current allocated pay:", currentAllocatedPay);
             for (const step of allocationSteps) {
-                if (currentAllocatedPay >= targetOTPay - CONFIG.ALLOCATION_PRECISION) break;
+                // Modified condition: Continue until currentAllocatedPay is >= targetOTPay
+                if (targetOTPay !== null && currentAllocatedPay >= targetOTPay - CONFIG.ALLOCATION_PRECISION) {
+                    console.log("[performAllocationPass] Target met or exceeded, breaking from pass.");
+                    break;
+                }
 
                 const multiplier = CONFIG.OT_MULTIPLIERS[step.type];
-                if (!multiplier) continue;
+                if (!multiplier) {
+                    console.warn(`[performAllocationPass] No multiplier found for step type: ${step.type}. Skipping step.`);
+                    continue;
+                }
 
                 const relevantDays = availableDays.filter(day => step.days.includes(day.dayOfWeek));
+                console.log(`[performAllocationPass] Processing step type: ${step.type}. Relevant days: ${relevantDays.map(d => d.date).join(', ')}`);
 
                 for (const day of relevantDays) {
-                    if (currentAllocatedPay >= targetOTPay - CONFIG.ALLOCATION_PRECISION) break;
+                    // Modified condition: Continue until currentAllocatedPay is >= targetOTPay
+                    if (targetOTPay !== null && currentAllocatedPay >= targetOTPay - CONFIG.ALLOCATION_PRECISION) {
+                        console.log("[performAllocationPass] Target met or exceeded within day loop, breaking.");
+                        break;
+                    }
 
-                    const maxHoursForThisDay = CONFIG.MAX_DAILY_OT_HOURS - hoursAllocatedPerDay[day.date];
-                    if (maxHoursForThisDay <= 0) continue;
+                    const maxHoursForThisDay = CONFIG.MAX_DAILY_OT_HOURS - (hoursAllocatedPerDay[day.date] || 0); // Use 0 if no hours yet
+                    if (maxHoursForThisDay <= 0) {
+                        console.log(`[performAllocationPass] Day ${day.date} has no max hours remaining (${maxHoursForThisDay}). Skipping.`);
+                        continue;
+                    }
 
                     let hoursToConsider = 0;
                     if (step.type === 'Rest Day (Sunday) — 1st 8h') {
-                        const current1st8h = sundayFirst8hAllocated.get(day.date) || 0;
-                        const remainingFor1st8h = 8 - current1st8h; // Max 8 hours for 1st 8h type
+                        const currentSunday1st8h = sundayFirst8hAllocated.get(day.date) || 0;
+                        const remainingFor1st8h = 8 - currentSunday1st8h;
                         const suggestedHours = getRandomHours(step.minHours, step.maxHours);
                         hoursToConsider = Math.min(suggestedHours, maxHoursForThisDay, remainingFor1st8h);
+                        console.log(`[performAllocationPass] Sunday 1st 8h for ${day.date}. current1st8h: ${currentSunday1st8h}, remainingFor1st8h: ${remainingFor1st8h}, hoursToConsider: ${hoursToConsider}`);
                     } else if (step.hours !== undefined) {
                         hoursToConsider = Math.min(step.hours, maxHoursForThisDay);
                     } else {
@@ -1797,7 +1888,7 @@
                     if (step.type === 'Rest Day (Sunday) — after 8h') {
                         const totalHoursOnSunday = hoursAllocatedPerDay[day.date];
                         if (totalHoursOnSunday < 8) {
-                            // Only allocate 2.0x after 8 hours for the day have been reached
+                            console.log(`[performAllocationPass] Skipping Sunday after 8h for ${day.date} as total hours (${totalHoursOnSunday}) < 8.`);
                             continue;
                         }
                     }
@@ -1806,29 +1897,37 @@
                     const currentMultiplier = isPublicHoliday(day.date) ? CONFIG.OT_MULTIPLIERS['Public Holiday'] : multiplier;
 
                     const potentialPay = calculateOT(hourlyRate, hoursToConsider, step.type, day.date);
+                    console.log(`[performAllocationPass] Day ${day.date}, Type ${step.type}, Hours to consider: ${hoursToConsider}, Potential Pay: ${potentialPay}`);
 
-                    if (hoursToConsider > 0 && currentAllocatedPay + potentialPay <= targetOTPay + CONFIG.ALLOCATION_PRECISION) {
+
+                    // Modified condition: Add if it doesn't make us *too* far over target, or if it's the last chance to meet it
+                    if (hoursToConsider > 0 && (targetOTPay === null || currentAllocatedPay + potentialPay <= targetOTPay + (hourlyRate * currentMultiplier * 0.5) + CONFIG.ALLOCATION_PRECISION)) { // Allow up to 0.5h over if needed
                         addOrUpdateOTEntry(day.date, hoursToConsider, step.type);
                         currentAllocatedPay += potentialPay;
-                        hoursAllocatedPerDay[day.date] += hoursToConsider;
+                        hoursAllocatedPerDay[day.date] = (hoursAllocatedPerDay[day.date] || 0) + hoursToConsider; // Update total hours for the day
                         if (step.type === 'Rest Day (Sunday) — 1st 8h') {
                             sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + hoursToConsider);
                         }
-                    } else if (hoursToConsider > 0) { // If adding full hours exceeds target, try to add precisely
+                        console.log(`[performAllocationPass] Added ${hoursToConsider}h for ${day.date}. New allocated pay: ${currentAllocatedPay}`);
+                    } else if (hoursToConsider > 0 && targetOTPay !== null && currentAllocatedPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) { // If adding full hours exceeds target, try to add precisely if still under target
                         const remainingPayNeeded = targetOTPay - currentAllocatedPay;
                         const hoursToPreciselyAdd = remainingPayNeeded / (hourlyRate * currentMultiplier);
                         const finalHoursToAdd = Math.min(hoursToPreciselyAdd, hoursToConsider, maxHoursForThisDay);
+                        console.log(`[performAllocationPass] Trying precise add for ${day.date}. Remaining pay needed: ${remainingPayNeeded}, Hours to precisely add: ${hoursToPreciselyAdd}, Final hours to add: ${finalHoursToAdd}`);
+
                         if (finalHoursToAdd > 0) {
                             addOrUpdateOTEntry(day.date, finalHoursToAdd, step.type);
-                            currentAllocatedPay = targetOTPay;
-                            hoursAllocatedPerDay[day.date] += finalHoursToAdd;
+                            currentAllocatedPay = targetOTPay; // Set to target as we're hitting it precisely
+                            hoursAllocatedPerDay[day.date] = (hoursAllocatedPerDay[day.date] || 0) + finalHoursToAdd; // Update total hours for the day
                             if (step.type === 'Rest Day (Sunday) — 1st 8h') {
                                 sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + finalHoursToAdd);
                             }
+                            console.log(`[performAllocationPass] Precisely added ${finalHoursToAdd}h for ${day.date}. Target reached.`);
                         }
                     }
                 }
             }
+            console.log("[performAllocationPass] Pass finished. Current allocated pay:", currentAllocatedPay);
             return currentAllocatedPay;
         }
 
@@ -1843,13 +1942,21 @@
          * @returns {number} The updated currentAllocatedPay.
          */
         function fillRemainingGap(availableDays, targetOTPay, currentAllocatedPay, hourlyRate, hoursAllocatedPerDay, sundayFirst8hAllocated) {
+            console.log("[fillRemainingGap] Starting to fill remaining gap. Current allocated pay:", currentAllocatedPay);
             const daysToFill = availableDays.slice().sort((a, b) => hoursAllocatedPerDay[a.date] - hoursAllocatedPerDay[b.date]);
 
             for (const day of daysToFill) {
-                if (currentAllocatedPay >= targetOTPay - CONFIG.ALLOCATION_PRECISION) break;
+                // Modified condition: Continue until currentAllocatedPay is >= targetOTPay
+                if (targetOTPay !== null && currentAllocatedPay >= targetOTPay - CONFIG.ALLOCATION_PRECISION) {
+                    console.log("[fillRemainingGap] Target met or exceeded, breaking from gap fill.");
+                    break;
+                }
 
-                const maxHoursForThisDay = CONFIG.MAX_DAILY_OT_HOURS - hoursAllocatedPerDay[day.date];
-                if (maxHoursForThisDay <= 0) continue;
+                const maxHoursForThisDay = CONFIG.MAX_DAILY_OT_HOURS - (hoursAllocatedPerDay[day.date] || 0);
+                if (maxHoursForThisDay <= 0) {
+                    console.log(`[fillRemainingGap] Day ${day.date} has no max hours remaining (${maxHoursForThisDay}). Skipping.`);
+                    continue;
+                }
 
                 let hoursToConsider = 0;
                 let typeToUse = '';
@@ -1861,14 +1968,15 @@
                 // Priority for Sunday: 1st 8h (0.5x) first, then after 8h (2.0x)
                 if (day.dayOfWeek === 0) { // It's a Sunday
                     const currentSunday1st8h = sundayFirst8hAllocated.get(day.date) || 0;
-                    const totalHoursOnSunday = hoursAllocatedPerDay[day.date];
+                    const totalHoursOnSunday = (hoursAllocatedPerDay[day.date] || 0);
 
                     if (currentSunday1st8h < 8) { // Still space for 1st 8h at 0.5x
                         typeToUse = 'Rest Day (Sunday) — 1st 8h';
                         currentMultiplier = CONFIG.OT_MULTIPLIERS[typeToUse];
                         const presetFor1st8h = presetDetails[typeToUse];
                         hoursToConsider = getRandomHours(presetFor1st8h.minHours, presetFor1st8h.maxHours);
-                        hoursToConsider = Math.min(hoursToConsider, maxHoursForThisDay, 8 - current1st8h); // Cap at 8 hours for this type
+                        hoursToConsider = Math.min(hoursToConsider, maxHoursForThisDay, 8 - currentSunday1st8h);
+                        console.log(`[fillRemainingGap] Sunday 1st 8h for ${day.date}. current1st8h: ${currentSunday1st8h}, hoursToConsider: ${hoursToConsider}`);
 
                     } else if (totalHoursOnSunday < CONFIG.MAX_DAILY_OT_HOURS) { // After 1st 8h, consider after 8h
                         typeToUse = 'Rest Day (Sunday) — after 8h';
@@ -1876,6 +1984,7 @@
                         const presetForAfter8h = presetDetails[typeToUse];
                         hoursToConsider = getRandomHours(presetForAfter8h.minHours, presetForAfter8h.maxHours);
                         hoursToConsider = Math.min(hoursToConsider, maxHoursForThisDay);
+                        console.log(`[fillRemainingGap] Sunday after 8h for ${day.date}. totalHoursOnSunday: ${totalHoursOnSunday}, hoursToConsider: ${hoursToConsider}`);
                     }
                 } else if (day.dayOfWeek === 6) { // Saturday
                     typeToUse = 'Off Day (Saturday)';
@@ -1883,12 +1992,14 @@
                     const presetForOffDay = presetDetails[typeToUse];
                     hoursToConsider = getRandomHours(presetForOffDay.minHours, presetForOffDay.maxHours);
                     hoursToConsider = Math.min(hoursToConsider, maxHoursForThisDay);
+                    console.log(`[fillRemainingGap] Saturday for ${day.date}. hoursToConsider: ${hoursToConsider}`);
                 } else if (day.dayOfWeek >= 1 && day.dayOfWeek <= 5) { // Weekday
                     typeToUse = 'Normal OT (Weekdays)';
                     currentMultiplier = CONFIG.OT_MULTIPLIERS[typeToUse];
                     const presetForNormalOT = presetDetails[typeToUse];
                     hoursToConsider = getRandomHours(presetForNormalOT.minHours, presetForNormalOT.maxHours);
                     hoursToConsider = Math.min(hoursToConsider, maxHoursForThisDay);
+                    console.log(`[fillRemainingGap] Weekday for ${day.date}. hoursToConsider: ${hoursToConsider}`);
                 }
 
                 if (hoursToConsider > 0 && typeToUse && currentMultiplier > 0) { // Ensure typeToUse is not empty
@@ -1896,28 +2007,36 @@
                     const finalMultiplier = isPublicHoliday(day.date) ? CONFIG.OT_MULTIPLIERS['Public Holiday'] : currentMultiplier;
 
                     const potentialPay = calculateOT(hourlyRate, hoursToConsider, typeToUse, day.date);
-                    if (currentAllocatedPay + potentialPay <= targetOTPay + CONFIG.ALLOCATION_PRECISION) {
+                    console.log(`[fillRemainingGap] Day ${day.date}, Type ${typeToUse}, Hours to consider: ${hoursToConsider}, Potential Pay: ${potentialPay}`);
+
+                    // Modified condition: Add if it doesn't make us *too* far over target, or if it's the last chance to meet it
+                    if (targetOTPay === null || currentAllocatedPay + potentialPay <= targetOTPay + (hourlyRate * finalMultiplier * 0.5) + CONFIG.ALLOCATION_PRECISION) { // Allow up to 0.5h over if needed
                         addOrUpdateOTEntry(day.date, hoursToConsider, typeToUse);
                         currentAllocatedPay += potentialPay;
-                        hoursAllocatedPerDay[day.date] += hoursToConsider;
+                        hoursAllocatedPerDay[day.date] = (hoursAllocatedPerDay[day.date] || 0) + hoursToConsider;
                         if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
                             sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + hoursToConsider);
                         }
-                    } else {
+                        console.log(`[fillRemainingGap] Added ${hoursToConsider}h for ${day.date}. New allocated pay: ${currentAllocatedPay}`);
+                    } else if (targetOTPay !== null && currentAllocatedPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) { // If adding full hours exceeds target, try to add precisely if still under target
                         const remainingPayNeeded = targetOTPay - currentAllocatedPay;
                         const hoursToPreciselyAdd = remainingPayNeeded / (hourlyRate * finalMultiplier);
                         const finalHoursToAdd = Math.min(hoursToPreciselyAdd, hoursToConsider);
+                        console.log(`[fillRemainingGap] Trying precise add for ${day.date}. Remaining pay needed: ${remainingPayNeeded}, Hours to precisely add: ${hoursToPreciselyAdd}, Final hours to add: ${finalHoursToAdd}`);
+
                         if (finalHoursToAdd > 0) {
                             addOrUpdateOTEntry(day.date, finalHoursToAdd, typeToUse);
                             currentAllocatedPay = targetOTPay;
-                            hoursAllocatedPerDay[day.date] += finalHoursToAdd;
+                            hoursAllocatedPerDay[day.date] = (hoursAllocatedPerDay[day.date] || 0) + finalHoursToAdd;
                             if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
                                 sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + finalHoursToAdd);
                             }
+                            console.log(`[fillRemainingGap] Precisely added ${finalHoursToAdd}h for ${day.date}. Target reached.`);
                         }
                     }
                 }
             }
+            console.log("[fillRemainingGap] Gap fill finished. Current allocated pay:", currentAllocatedPay);
             return currentAllocatedPay;
         }
 
@@ -1925,6 +2044,7 @@
          * Calculates and assigns start/end times for all entries in otEntries, ensuring chaining for same-day entries.
          */
         function calculateAndAssignTimes() {
+            console.log("--- Starting calculateAndAssignTimes ---");
             // Sort entries by date and then by their original ID (to maintain creation order for same-day entries)
             otEntries.sort((a, b) => {
                 const dateComparison = new Date(a.date) - new Date(b.date);
@@ -1934,6 +2054,7 @@
                 // If dates are the same, sort by the numeric part of the ID to maintain original creation order
                 return parseInt(a.id.split('-')[2]) - parseInt(b.id.split('-')[2]);
             });
+            console.log("otEntries sorted for time assignment:", JSON.stringify(otEntries));
 
             const lastEndTimeOnDay = {}; // To track end time for chaining on the same day
             otEntries.forEach(entry => {
@@ -1942,9 +2063,15 @@
                 // If startTime is already set (manual entry), use it
                 if (!entry.startTime || !entry.endTime) {
                     calculateSuggestedTimes(entry, prevEndTime);
+                    console.log(`  Assigned times for ${entry.date}: ${entry.startTime} - ${entry.endTime}`);
+                } else {
+                    // If times are already set, ensure endTime is correct based on current hours and startTime
+                    entry.endTime = addHoursToTime(entry.startTime, entry.hours);
+                    console.log(`  Times for ${entry.date} already set, re-calculated endTime: ${entry.startTime} - ${entry.endTime}`);
                 }
                 lastEndTimeOnDay[entry.date] = entry.endTime; // Update last end time for this day
             });
+            console.log("--- Finished calculateAndAssignTimes ---");
         }
 
         /**
@@ -2183,9 +2310,10 @@
         }
 
         /**
-         * Automatically allocates OT hours based on selected strategy.
+         * Main function for auto-allocating OT hours.
+         * @param {boolean} clearExisting - If true, clears all existing entries before allocation.
          */
-        async function autoAllocateHours() {
+        async function performAutoAllocation(clearExisting) {
             autoAllocateLoading.classList.remove('hidden'); // Show loading indicator
             autoAllocateLoading.setAttribute('aria-live', 'polite'); // Announce loading
 
@@ -2196,54 +2324,74 @@
             const selectedWorkloadPreset = workloadPresetSelect.value;
             const selectedAllocationStrategy = allocationStrategySelect.value;
 
+            console.log("--- Auto Allocate Hours Start ---");
+            console.log("Current otEntries before allocation:", JSON.stringify(otEntries));
+            console.log("Clear existing:", clearExisting);
+
             // Basic validation
             if (isNaN(basicSalary) || basicSalary <= 0) {
                 showMessageBox('Input Error', 'Please enter a valid Basic Monthly Salary for auto-allocation.');
                 autoAllocateLoading.classList.add('hidden');
                 autoAllocateLoading.removeAttribute('aria-live');
+                console.log("--- Auto Allocate Hours End (Validation Failed: Basic Salary) ---");
                 return;
             }
             if (!startDate || !endDate) {
                 showMessageBox('Input Error', 'Please select both Start and End Dates for the planning range.');
                 autoAllocateLoading.classList.add('hidden');
                 autoAllocateLoading.removeAttribute('aria-live');
+                console.log("--- Auto Allocate Hours End (Validation Failed: Date Range Missing) ---");
                 return;
             }
             if (new Date(startDate) > new Date(endDate)) {
                 showMessageBox('Input Error', 'Start Date cannot be after End Date.');
                 autoAllocateLoading.classList.add('hidden');
                 autoAllocateLoading.removeAttribute('aria-live');
+                console.log("--- Auto Allocate Hours End (Validation Failed: Invalid Date Range) ---");
                 return;
             }
 
-            // DO NOT clear all entries here. Preserve existing ones.
-            // clearOTEntries();
+            let currentAllocatedPay = 0;
+            const hoursAllocatedPerDay = {}; // Map to track total hours for each day (including existing)
+            const sundayFirst8hAllocated = new Map(); // Map to track 0.5x hours for Sundays
+
+            if (clearExisting) {
+                console.log("[Auto Allocate] Clearing all existing OT entries before new allocation.");
+                clearOTEntries(); // This clears otEntries array and UI
+            } else {
+                // If not clearing, pre-populate current state from existing entries
+                otEntries.forEach(entry => {
+                    const hours = parseFloat(entry.hours);
+                    const type = entry.type;
+                    const date = entry.date;
+
+                    if (isNaN(hours) || hours <= 0) {
+                        console.warn(`Skipping existing entry ${entry.id} due to invalid hours: ${hours}`);
+                        return;
+                    }
+
+                    const dailyOTPay = calculateOT(calculateHourlyRate(basicSalary), hours, type, date);
+                    currentAllocatedPay += dailyOTPay;
+                    hoursAllocatedPerDay[date] = (hoursAllocatedPerDay[date] || 0) + hours;
+                    if (type === 'Rest Day (Sunday) — 1st 8h') {
+                        sundayFirst8hAllocated.set(date, (sundayFirst8hAllocated.get(date) || 0) + hours);
+                    }
+                });
+                console.log("[Auto Allocate] Pre-populated state from existing entries.");
+                console.log("Pre-existing currentAllocatedPay:", currentAllocatedPay);
+                console.log("Pre-existing hoursAllocatedPerDay:", JSON.stringify(hoursAllocatedPerDay));
+                console.log("Pre-existing sundayFirst8hAllocated:", JSON.stringify(Array.from(sundayFirst8hAllocated.entries())));
+            }
 
             const hourlyRate = calculateHourlyRate(basicSalary);
-            let currentAllocatedPay = 0;
+            const allDaysInPlanningRange = initializePlanningDays(startDate, endDate);
 
-            // Initialize maps to track hours allocated per day and Sunday 0.5x hours
-            const hoursAllocatedPerDay = {};
-            const sundayFirst8hAllocated = new Map();
-
-            // Pre-populate hoursAllocatedPerDay and sundayFirst8hAllocated with existing entries
-            otEntries.forEach(entry => {
-                if (!hoursAllocatedPerDay[entry.date]) {
-                    hoursAllocatedPerDay[entry.date] = 0;
-                }
-                hoursAllocatedPerDay[entry.date] += parseFloat(entry.hours);
-
-                if (entry.type === 'Rest Day (Sunday) — 1st 8h') {
-                    sundayFirst8hAllocated.set(entry.date, (sundayFirst8hAllocated.get(entry.date) || 0) + parseFloat(entry.hours));
-                }
-                // Also add existing pay to currentAllocatedPay if target-driven
-                if (selectedAllocationStrategy === 'Target-Driven') {
-                    currentAllocatedPay += calculateOT(hourlyRate, parseFloat(entry.hours), entry.type, entry.date);
-                }
+            // Filter out days that are already fully allocated (MAX_DAILY_OT_HOURS reached)
+            const availableDaysForAllocation = allDaysInPlanningRange.filter(day => {
+                return (hoursAllocatedPerDay[day.date] || 0) < CONFIG.MAX_DAILY_OT_HOURS;
             });
+            console.log("Available days for allocation:", availableDaysForAllocation.map(d => d.date));
 
-
-            const availableDays = initializePlanningDays(startDate, endDate);
 
             // Get the base allocation steps and apply preset overrides
             let currentAllocationSteps = JSON.parse(JSON.stringify(CONFIG.ALLOCATION_STEPS));
@@ -2262,42 +2410,52 @@
                     showMessageBox('Input Error', 'Please enter a valid Target OT Pay (> RM0) for Target-Driven allocation, or select "Workload-Driven" strategy.');
                     autoAllocateLoading.classList.add('hidden');
                     autoAllocateLoading.removeAttribute('aria-live');
+                    console.log("--- Auto Allocate Hours End (Validation Failed: Target Not Provided) ---");
                     return;
                 }
                 // Calculate remaining target pay
                 const remainingTargetPay = targetOTPay - currentAllocatedPay;
-                if (remainingTargetPay <= CONFIG.ALLOCATION_PRECISION) { // If target already met or exceeded
+                // Changed condition: if target is already met or exceeded, no further auto-allocation needed
+                if (remainingTargetPay <= CONFIG.ALLOCATION_PRECISION) { // Use precision for comparison
                     showMessageBox('Target Already Met', 'Your target OT pay has already been met or exceeded with existing entries. No further auto-allocation needed.');
                     autoAllocateLoading.classList.add('hidden');
                     autoAllocateLoading.removeAttribute('aria-live');
                     calculateAndDisplayResults();
+                    console.log("--- Auto Allocate Hours End (Target Already Met) ---");
                     return;
                 }
+                console.log(`Target-Driven Allocation: Target=${targetOTPay}, Remaining to allocate=${remainingTargetPay}`);
 
                 // --- Target-based Allocation ---
-                currentAllocatedPay = performAllocationPass(availableDays, targetOTPay, currentAllocatedPay, hourlyRate, currentAllocationSteps, hoursAllocatedPerDay, sundayFirst8hAllocated);
+                currentAllocatedPay = performAllocationPass(availableDaysForAllocation, targetOTPay, currentAllocatedPay, hourlyRate, currentAllocationSteps, hoursAllocatedPerDay, sundayFirst8hAllocated);
 
-                // Phase 2: Fill remaining gap if target not met
-                if (currentAllocatedPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) {
-                    currentAllocatedPay = fillRemainingGap(availableDays, targetOTPay, currentAllocatedPay, hourlyRate, hoursAllocatedPerDay, sundayFirst8hAllocated);
+                // Phase 2: Fill remaining gap if target not met (now `currentAllocatedPay < targetOTPay`)
+                if (currentAllocatedPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) { // Use precision for comparison
+                    console.log("[Auto Allocate] Target not fully met after first pass. Filling remaining gap.");
+                    currentAllocatedPay = fillRemainingGap(availableDaysForAllocation, targetOTPay, currentAllocatedPay, hourlyRate, hoursAllocatedPerDay, sundayFirst8hAllocated);
                 }
 
                 // Final Check: If target still not met, inform the user
-                if (currentAllocatedPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) {
+                if (currentAllocatedPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) { // Use precision for comparison
                     showMessageBox('Target Not Fully Met', `The target OT pay of ${formatCurrency(targetOTPay)} was not fully met (${formatCurrency(currentAllocatedPay)}). You may need to manually add more hours or increase the planning date range.`);
                 } else {
                     showMessageBox('Auto Allocation Complete', 'Overtime hours have been automatically allocated to reach your target pay, guided by the workload preset. Please review and adjust as needed.');
                 }
             } else if (selectedAllocationStrategy === 'Workload-Driven') {
+                console.log("Workload-Driven Allocation: Filling all days based on preset.");
                 // --- Workload-only Allocation (No Target) ---
-                availableDays.sort((a, b) => new Date(a.date) - new Date(b.date)); // Ensure sorted by date for consistent allocation
+                availableDaysForAllocation.sort((a, b) => new Date(a.date) - new Date(b.date)); // Ensure sorted by date for consistent allocation
 
-                for (const day of availableDays) {
+                for (const day of availableDaysForAllocation) {
                     let maxHoursRemaining = CONFIG.MAX_DAILY_OT_HOURS - (hoursAllocatedPerDay[day.date] || 0); // Use 0 if no hours yet
-                    if (maxHoursRemaining <= 0) continue;
+                    if (maxHoursRemaining <= 0) {
+                        console.log(`[Workload-Driven] Day ${day.date} has no max hours remaining. Skipping.`);
+                        continue;
+                    }
 
                     // Iterate through applicable steps for the current day
                     const applicableStepsForDay = currentAllocationSteps.filter(step => step.days.includes(day.dayOfWeek));
+                    console.log(`[Workload-Driven] Processing day ${day.date}. Applicable steps: ${applicableStepsForDay.map(s => s.type).join(', ')}`);
 
                     for (const step of applicableStepsForDay) {
                         if (maxHoursRemaining <= 0) break;
@@ -2309,18 +2467,23 @@
                             const remainingFor1st8h = 8 - current1st8h;
                             hoursToAllocate = getRandomHours(step.minHours, step.maxHours);
                             hoursToAllocate = Math.min(hoursToAllocate, maxHoursRemaining, remainingFor1st8h);
+                            console.log(`  [Workload-Driven] Sunday 1st 8h for ${day.date}. current1st8h: ${current1st8h}, hoursToAllocate: ${hoursToAllocate}`);
                         } else if (step.type === 'Rest Day (Sunday) — after 8h') {
                             const totalHoursOnSunday = (hoursAllocatedPerDay[day.date] || 0);
                             if (totalHoursOnSunday < 8) {
+                                console.log(`  [Workload-Driven] Skipping Sunday after 8h for ${day.date} as total hours (${totalHoursOnSunday}) < 8.`);
                                 continue; // Skip 2.0x if 0.5x hasn't been fully allocated yet
                             }
                             hoursToAllocate = getRandomHours(step.minHours, step.maxHours);
                             hoursToAllocate = Math.min(hoursToAllocate, maxHoursRemaining);
+                            console.log(`  [Workload-Driven] Sunday after 8h for ${day.date}. totalHoursOnSunday: ${totalHoursOnSunday}, hoursToAllocate: ${hoursToAllocate}`);
                         } else if (step.hours !== undefined) { // Fixed hours (e.g., if we had any other fixed hours type)
-                            hoursToAllocate = Math.min(step.hours - (hoursAllocatedPerDay[day.date] || 0), maxHoursRemaining);
+                            hoursToAllocate = getRandomHours(step.minHours, step.maxHours); // Use range for fixed hours too
+                            hoursToAllocate = Math.min(hoursToAllocate, maxHoursRemaining);
                         } else { // Range-based hours for other types
                             hoursToAllocate = getRandomHours(step.minHours, step.maxHours);
                             hoursToAllocate = Math.min(hoursToAllocate, maxHoursRemaining);
+                            console.log(`  [Workload-Driven] Other type ${step.type} for ${day.date}. hoursToAllocate: ${hoursToAllocate}`);
                         }
 
                         if (hoursToAllocate > 0) {
@@ -2330,6 +2493,7 @@
                                 sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + hoursToAllocate);
                             }
                             maxHoursRemaining = CONFIG.MAX_DAILY_OT_HOURS - hoursAllocatedPerDay[day.date]; // Update remaining hours
+                            console.log(`  [Workload-Driven] Added ${hoursToAllocate}h for ${day.date}. Remaining for day: ${maxHoursRemaining}`);
                         }
                     }
                 }
@@ -2348,6 +2512,12 @@
             calculateAndDisplayResults(); // Update results after auto-allocation
             autoAllocateLoading.classList.add('hidden'); // Hide loading indicator
             autoAllocateLoading.removeAttribute('aria-live'); // Remove aria-live when hidden
+
+            console.log("Final otEntries after allocation passes:", JSON.stringify(otEntries));
+            console.log("Final hoursAllocatedPerDay after allocation passes:", JSON.stringify(hoursAllocatedPerDay));
+            console.log("Final sundayFirst8hAllocated after allocation passes:", JSON.stringify(Array.from(sundayFirst8hAllocated.entries())));
+            console.log("Final currentAllocatedPay after allocation passes:", currentAllocatedPay);
+            console.log("--- Auto Allocate Hours End ---");
 
             // Scroll to the results section
             // resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); // No longer needed with sticky
@@ -3034,6 +3204,25 @@
             }
         }
 
+        /**
+         * Shows the allocation choice modal.
+         */
+        function showAllocationChoiceModal() {
+            allocationChoiceModal.classList.remove('hidden');
+            window.lastFocusedElement = document.activeElement; // Store focused element
+            clearAndAllocateBtn.focus(); // Focus the first button in the modal
+        }
+
+        /**
+         * Hides the allocation choice modal.
+         */
+        function hideAllocationChoiceModal() {
+            allocationChoiceModal.classList.add('hidden');
+            if (window.lastFocusedElement) {
+                window.lastFocusedElement.focus(); // Restore focus
+            }
+        }
+
 
         document.addEventListener('DOMContentLoaded', async () => {
             // --- DOM Elements Assignment ---
@@ -3059,6 +3248,7 @@
             addOTEntryBtn = document.getElementById('addOTEntryBtn');
             autoAllocateBtn = document.getElementById('autoAllocateBtn');
             autoAllocateLoading = document.getElementById('autoAllocateLoading');
+            resetAndReallocateBtn = document.getElementById('resetAndReallocateBtn'); // NEW
             clearAllEntriesBtn = document.getElementById('clearAllEntriesBtn');
             calculateBtn = document.getElementById('calculateBtn');
             saveDataBtn = document.getElementById('saveDataBtn');
@@ -3110,6 +3300,11 @@
             endDateModalError = document.getElementById('endDateModalError');   // New: Error for end date in modal
             confirmDateRangeBtn = document.getElementById('confirmDateRangeBtn'); // New: Assign confirm button
             cancelDateRangeBtn = document.getElementById('cancelDateRangeBtn'); // New: Assign cancel button
+
+            allocationChoiceModal = document.getElementById('allocationChoiceModal'); // NEW
+            clearAndAllocateBtn = document.getElementById('clearAndAllocateBtn');     // NEW
+            fillRemainingBtn = document.getElementById('fillRemainingBtn');           // NEW
+            cancelAllocationChoiceBtn = document.getElementById('cancelAllocationChoiceBtn'); // NEW
 
             setStartDateTodayBtn = document.getElementById('setStartDateTodayBtn');
             setEndDateTodayBtn = document.getElementById('setEndDateTodayBtn');
@@ -3182,9 +3377,32 @@
                 updatePublicHolidayDatePicker(); // Update Public Holiday date picker constraints
             });
 
-            autoAllocateBtn.addEventListener('click', autoAllocateHours);
+            // Modified autoAllocateBtn to show choice modal first
+            autoAllocateBtn.addEventListener('click', showAllocationChoiceModal);
+            // New listeners for the allocation choice modal buttons
+            clearAndAllocateBtn.addEventListener('click', () => {
+                hideAllocationChoiceModal();
+                performAutoAllocation(true); // True to clear existing
+            });
+            fillRemainingBtn.addEventListener('click', () => {
+                hideAllocationChoiceModal();
+                performAutoAllocation(false); // False to keep existing
+            });
+            cancelAllocationChoiceBtn.addEventListener('click', hideAllocationChoiceModal);
+
+            // NEW: Listener for the Reset & Re-allocate All button
+            resetAndReallocateBtn.addEventListener('click', () => {
+                showMessageBox(
+                    'Confirm Reset & Re-allocate',
+                    'Are you sure you want to clear ALL existing OT entries and re-allocate from scratch? This action cannot be undone.',
+                    'confirm',
+                    () => performAutoAllocation(true) // Directly call with clearExisting = true
+                );
+            });
+
+
             clearAllEntriesBtn.addEventListener('click', clearDailyOTEntries);
-            calculateBtn.addEventListener('click', autoAllocateHours); // Changed to call autoAllocateHours
+            calculateBtn.addEventListener('click', () => performAutoAllocation(false)); // Calculate button will now just fill remaining
             exportSummaryBtn.addEventListener('click', exportSummary);
             saveDataBtn.addEventListener('click', saveOTEntries);
             loadDataBtn.addEventListener('click', () => loadOTEntries(true)); // Pass true to show message box
