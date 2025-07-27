@@ -715,6 +715,28 @@
                         </div>
                     </div>
                 </div>
+                <!-- NEW: Checkboxes for Auto-Allocation Day Types -->
+                <div class="mt-6">
+                    <label class="block text-xl font-bold text-gray-800 mb-3">Auto-Allocate to:</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="allocateWorkingDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked>
+                            <label for="allocateWorkingDay" class="ml-2 text-gray-700 font-medium">Working Day</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="allocateOffDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked>
+                            <label for="allocateOffDay" class="ml-2 text-gray-700 font-medium">Off Day</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="allocateRestDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked>
+                            <label for="allocateRestDay" class="ml-2 text-gray-700 font-medium">Rest Day</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="allocatePublicHoliday" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked>
+                            <label for="allocatePublicHoliday" class="ml-2 text-gray-700 font-medium">Public Holiday</label>
+                        </div>
+                    </div>
+                </div>
                 <p class="text-sm text-gray-600 mt-4">
                     Working Schedule: 5 days/week, Saturday: Off Day, Sunday: Rest Day.
                     For payroll, employer uses 26 working days monthly.
@@ -1169,6 +1191,12 @@
             let otDistributionChartInstance; // Chart.js instance
             let chartPlaceholder; // New chart placeholder element
 
+            // NEW: Allocation checkboxes
+            let allocateWorkingDayCheckbox;
+            let allocateOffDayCheckbox;
+            let allocateRestDayCheckbox;
+            let allocatePublicHolidayCheckbox;
+
 
             // --- Utility Functions ---
 
@@ -1466,39 +1494,23 @@
             }
 
             /**
-             * Calculates and updates the suggested start and end times for a given OT entry.
-             * This function modifies the entry object directly.
-             * @param {Object} entry - The OT entry object to update.
-             * @param {string} [prevEndTimeForDay] - Optional: The end time of a previous OT entry on the same day, for chaining.
+             * Calculates and assigns a suggested start and end time for an OT entry.
+             * If a previous end time for the same day is provided, it attempts to chain the times.
+             * Otherwise, it generates a random start time within a typical evening range.
+             * @param {Object} entry - The OT entry object to update (mutates entry.startTime and entry.endTime).
+             * @param {string|null} prevEndTime - The end time of the previous entry on the same day, if any (HH:MM).
              */
-            function calculateSuggestedTimes(entry, prevEndTimeForDay = null) {
-                let suggestedStartTime = '';
-
-                if (entry.type === 'Normal OT (Weekdays)') {
-                    // Start anytime after 6 PM (18:00)
-                    suggestedStartTime = getRandomTime(18, 20); // Random between 6 PM and 7:45 PM
-                } else if (entry.type === 'Off Day (Saturday)' || entry.type === 'Public Holiday' || entry.type === 'Rest Day (Sunday) — 1st 8h') {
-                    // Start anytime after 9 AM (09:00)
-                    suggestedStartTime = getRandomTime(9, 11); // Random between 9 AM and 10:45 AM
-                } else if (entry.type === 'Rest Day (Sunday) — after 8h') {
-                    // If there's a preceding entry for the same day, use its end time
-                    if (prevEndTimeForDay) {
-                        suggestedStartTime = prevEndTimeForDay;
-                    } else {
-                        // Otherwise, start anytime after 5 PM (17:00)
-                        suggestedStartTime = getRandomTime(17, 19); // Random between 5 PM and 6:45 PM
-                    }
+            function calculateSuggestedTimes(entry, prevEndTime = null) {
+                let startTime;
+                if (prevEndTime) {
+                    startTime = prevEndTime;
+                } else {
+                    // Default start time range for auto-allocation (e.g., 6 PM to 10 PM)
+                    startTime = getRandomTime(18, 22);
                 }
-
-                // Ensure a default start time if none of the above conditions were met
-                if (!suggestedStartTime) {
-                    suggestedStartTime = '09:00'; // Default to 9 AM if type is unrecognized or logic fails
-                }
-
-                entry.startTime = suggestedStartTime;
+                entry.startTime = startTime;
                 entry.endTime = addHoursToTime(entry.startTime, entry.hours);
             }
-
 
             /**
              * Clears all existing OT entry rows from the UI and the internal state.
@@ -1800,7 +1812,7 @@
                     const newDate = value;
                     const selectedDates = dateRangePickerInstance.selectedDates;
                     const startDate = selectedDates[0] ? new Date(selectedDates[0].toISOString().split('T')[0]) : null;
-                    const endDate = selectedDates[1] ? new Date(selectedDates[1].toISOString().split('T')[0]) : null;
+                    const endDate = selectedDates[0] ? new Date(selectedDates[1].toISOString().split('T')[0]) : null;
                     const newDateObj = new Date(newDate);
 
                     // Validate against planning date range
@@ -2611,6 +2623,35 @@
                     const hourlyRate = calculateHourlyRate(basicSalary);
                     const allDaysInPlanningRange = initializePlanningDays(startDate, endDate); // Already shuffled
 
+                    // Determine which day types are enabled for allocation based on checkboxes
+                    const shouldAllocateWorkingDay = allocateWorkingDayCheckbox.checked;
+                    const shouldAllocateOffDay = allocateOffDayCheckbox.checked;
+                    const shouldAllocateRestDay = allocateRestDayCheckbox.checked;
+                    const shouldAllocatePublicHoliday = allocatePublicHolidayCheckbox.checked;
+
+                    // Filter the total planning range based on user's allocation preferences
+                    const allocatableDays = allDaysInPlanningRange.filter(day => {
+                        const dayOfWeek = day.dayOfWeek; // 0=Sunday, 1=Monday...6=Saturday
+                        const isPH = isPublicHoliday(day.date);
+
+                        if (isPH && shouldAllocatePublicHoliday) {
+                            return true;
+                        }
+                        if (!isPH) { // If it's not a public holiday
+                            if ((dayOfWeek >= 1 && dayOfWeek <= 5) && shouldAllocateWorkingDay) {
+                                return true; // Weekday and Working Day checkbox checked
+                            }
+                            if (dayOfWeek === 6 && shouldAllocateOffDay) {
+                                return true; // Saturday (Off Day) and Off Day checkbox checked
+                            }
+                            if (dayOfWeek === 0 && shouldAllocateRestDay) {
+                                return true; // Sunday (Rest Day) and Rest Day checkbox checked
+                            }
+                        }
+                        return false;
+                    });
+
+
                     const isTargetProvided = targetOTPay !== null && targetOTPay > 0;
 
                     if (selectedAllocationStrategy === 'Target-Driven') {
@@ -2626,11 +2667,11 @@
                             return;
                         }
 
-                        // Group days by type for prioritized allocation
-                        const weekdayDays = allDaysInPlanningRange.filter(day => day.dayOfWeek >= 1 && day.dayOfWeek <= 5 && !isPublicHoliday(day.date));
-                        const saturdayDays = allDaysInPlanningRange.filter(day => day.dayOfWeek === 6 && !isPublicHoliday(day.date));
-                        const publicHolidayDays = allDaysInPlanningRange.filter(day => isPublicHoliday(day.date));
-                        const sundayDays = allDaysInPlanningRange.filter(day => day.dayOfWeek === 0 && !isPublicHoliday(day.date)); // Exclude PH Sundays
+                        // Group days by type for prioritized allocation, using allocatableDays
+                        const weekdayDays = allocatableDays.filter(day => day.dayOfWeek >= 1 && day.dayOfWeek <= 5 && !isPublicHoliday(day.date));
+                        const saturdayDays = allocatableDays.filter(day => day.dayOfWeek === 6 && !isPublicHoliday(day.date));
+                        const publicHolidayDays = allocatableDays.filter(day => isPublicHoliday(day.date));
+                        const sundayDays = allocatableDays.filter(day => day.dayOfWeek === 0 && !isPublicHoliday(day.date));
 
                         // Shuffle each group to maintain some randomness within priority
                         weekdayDays.sort(() => Math.random() - 0.5);
@@ -2638,13 +2679,17 @@
                         publicHolidayDays.sort(() => Math.random() - 0.5);
                         sundayDays.sort(() => Math.random() - 0.5);
 
-                        // Define the priority order for allocation
+                        // Define the priority order for allocation based on user's request:
+                        // 1.5x rates (Weekdays, Off Day)
+                        // 2.0x Public Holiday
+                        // 0.5x Sunday (1st 8h)
+                        // 2.0x Sunday (after 8h)
                         const prioritizedDayGroups = [
-                            { type: 'Public Holiday', days: publicHolidayDays }, // Higher priority
-                            { type: 'Rest Day (Sunday) — after 8h', days: sundayDays }, // Higher priority
-                            { type: 'Off Day (Saturday)', days: saturdayDays },
                             { type: 'Normal OT (Weekdays)', days: weekdayDays },
-                            { type: 'Rest Day (Sunday) — 1st 8h', days: sundayDays } // Lower priority
+                            { type: 'Off Day (Saturday)', days: saturdayDays },
+                            { type: 'Public Holiday', days: publicHolidayDays },
+                            { type: 'Rest Day (Sunday) — 1st 8h', days: sundayDays },
+                            { type: 'Rest Day (Sunday) — after 8h', days: sundayDays }
                         ];
 
                         // Loop through priority groups until target is met or no more hours can be allocated
@@ -2706,59 +2751,26 @@
                                     hoursToAllocate = Math.max(0, Math.round(hoursToAllocate * 2) / 2); // Round to nearest 0.5
                                     hoursToAllocate = Math.min(hoursToAllocate, hoursForThisType); // Cap by what's available for this type
                                 } else {
-                                    // Aggressive allocation when still far from target
-                                    const remainingDaysForAllocation = allDaysInPlanningRange.filter(d => {
-                                        // Count days that are not yet full and are suitable for this group's type
-                                        const currentHoursOnDay = hoursAllocatedPerDay[d.date] || 0;
-                                        if (currentHoursOnDay >= CONFIG.MAX_DAILY_OT_HOURS) return false;
-
-                                        // Check if the day is applicable to the current group type
-                                        const dayOfWeek = new Date(d.date).getDay();
-                                        const isPH = isPublicHoliday(d.date);
-
-                                        if (group.type === 'Normal OT (Weekdays)' && (dayOfWeek >= 1 && dayOfWeek <= 5) && !isPH) return true;
-                                        if (group.type === 'Off Day (Saturday)' && dayOfWeek === 6 && !isPH) return true;
-                                        if (group.type === 'Public Holiday' && isPH) return true;
-                                        if (group.type === 'Rest Day (Sunday) — 1st 8h' && dayOfWeek === 0 && !isPH && (sundayFirst8hAllocated.get(d.date) || 0) < 8) return true;
-                                        if (group.type === 'Rest Day (Sunday) — after 8h' && dayOfWeek === 0 && !isPH && (hoursAllocatedPerDay[d.date] || 0) >= 8) return true;
-                                        return false;
-                                    }).length;
-
-                                    let targetHoursPerRemainingDay = 0;
-                                    if (remainingDaysForAllocation > 0 && hourlyRate * multiplier > 0) {
-                                        targetHoursPerRemainingDay = (remainingTargetPayForThisIteration / (hourlyRate * multiplier)) / remainingDaysForAllocation;
-                                    }
-
-                                    // Determine a base amount to allocate, prioritizing hitting the target
-                                    let baseHours = Math.min(targetHoursPerRemainingDay, hoursForThisType);
-
-                                    // Ensure baseHours is at least the minimum from the preset, but not more than max daily OT
+                                    // When far from target, try to allocate more aggressively within preset limits
                                     const preset = CONFIG.WORKLOAD_PRESETS[selectedWorkloadPreset][typeToUse] || { minHours: 0.5, maxHours: CONFIG.MAX_DAILY_OT_HOURS };
                                     
-                                    // Ensure baseHours is within a reasonable range, favoring the higher end to hit target
-                                    baseHours = Math.max(preset.minHours, Math.min(baseHours, CONFIG.MAX_DAILY_OT_HOURS));
+                                    let minRand = preset.minHours;
+                                    let maxRand = Math.min(preset.maxHours, hoursForThisType); // Cap by what's actually available for the day/type
 
-                                    // Introduce randomness around this base, but still cap by available hours for the day
-                                    // Let's make the random range tighter around the base, or always lean towards the max if target is far.
-                                    let minRand = Math.max(preset.minHours, baseHours - 1.0); // Allow some flexibility downwards
-                                    let maxRand = Math.min(preset.maxHours, baseHours + 1.0, hoursForThisType); // Allow some flexibility upwards
-
+                                    // If target is very far, make it even more aggressive, aiming for max possible hours
+                                    const aggressiveThreshold = targetOTPay * 0.5; // If remaining target is > 50% of total target
+                                    if (remainingTargetPayForThisIteration > aggressiveThreshold) {
+                                        minRand = Math.max(minRand, preset.maxHours * 0.75); // Ensure at least 75% of max preset hours
+                                        maxRand = hoursForThisType; // Allow up to max hours for the day/type
+                                    } else {
+                                        // Otherwise, use the standard preset range
+                                        minRand = preset.minHours;
+                                        maxRand = preset.maxHours;
+                                    }
                                     // Ensure minRand doesn't exceed maxRand
                                     minRand = Math.min(minRand, maxRand);
-
-                                    // If target is still very far, always try to allocate near the max possible for the day
-                                    // Define a threshold (e.g., 10% of the original target)
-                                    const originalTarget = getTargetOTPayValue(); // Get the original target value
-                                    const highTargetThreshold = originalTarget * 0.1; 
-
-                                    if (remainingTargetPayForThisIteration > highTargetThreshold) {
-                                        // If remaining target is still high, push minRand towards the higher end of possible hours
-                                        minRand = Math.max(minRand, hoursForThisType * 0.8); // Try to allocate at least 80% of max possible for this type
-                                        maxRand = hoursForThisType; // Maximize allocation
-                                    }
-
                                     hoursToAllocate = getRandomHours(minRand, maxRand);
-                                    hoursToAllocate = Math.min(hoursToAllocate, hoursForThisType); // Final cap by what's truly available for this type on this day
+                                    hoursToAllocate = Math.min(hoursToAllocate, hoursForThisType); // Final cap
                                 }
 
                                 hoursToAllocate = parseFloat(hoursToAllocate.toFixed(2)); // Round to 2 decimal places for final precision
@@ -2771,6 +2783,7 @@
                                     if (typeToUse === 'Rest Day (Sunday) — 1st 8h') {
                                         sundayFirst8hAllocated.set(day.date, (sundayFirst8hAllocated.get(day.date) || 0) + hoursToAllocate);
                                     }
+                                    maxHoursCanAdd = CONFIG.MAX_DAILY_OT_HOURS - hoursAllocatedPerDay[day.date]; // Update remaining hours
                                 }
                                 await yieldControl(); // Yield control after processing each day/attempt
                             }
@@ -2795,7 +2808,8 @@
                         });
 
                         // Filter out days that are already fully allocated (MAX_DAILY_OT_HOURS reached)
-                        const availableDaysForAllocation = allDaysInPlanningRange.filter(day => {
+                        // AND are within the allocatableDays
+                        const availableDaysForAllocation = allocatableDays.filter(day => {
                             return (hoursAllocatedPerDay[day.date] || 0) < CONFIG.MAX_DAILY_OT_HOURS;
                         });
 
@@ -3081,7 +3095,12 @@
                         allocationStrategy: allocationStrategySelect.value,
                         otEntries: JSON.stringify(cleanedOtEntries), // Stringify cleaned array
                         publicHolidays: JSON.stringify(publicHolidays), // Save public holidays
-                        customMultipliers: JSON.stringify(CONFIG.OT_MULTIPLIERS) // Save custom multipliers
+                        customMultipliers: JSON.stringify(CONFIG.OT_MULTIPLIERS), // Save custom multipliers
+                        // NEW: Save checkbox states
+                        allocateWorkingDay: allocateWorkingDayCheckbox.checked,
+                        allocateOffDay: allocateOffDayCheckbox.checked,
+                        allocateRestDay: allocateRestDayCheckbox.checked,
+                        allocatePublicHoliday: allocatePublicHolidayCheckbox.checked
                     };
 
                     await setDoc(docRef, dataToSave);
@@ -3165,6 +3184,12 @@
                         // Ensure all default multipliers are present if not in loaded data
                         Object.assign(CONFIG.OT_MULTIPLIERS, { ...DEFAULT_OT_MULTIPLIERS, ...CONFIG.OT_MULTIPLIERS });
 
+                        // NEW: Load checkbox states, defaulting to true if not found (for backward compatibility)
+                        allocateWorkingDayCheckbox.checked = loadedData.allocateWorkingDay !== undefined ? loadedData.allocateWorkingDay : true;
+                        allocateOffDayCheckbox.checked = loadedData.allocateOffDay !== undefined ? loadedData.allocateOffDay : true;
+                        allocateRestDayCheckbox.checked = loadedData.allocateRestDay !== undefined ? loadedData.allocateRestDay : true;
+                        allocatePublicHolidayCheckbox.checked = loadedData.allocatePublicHoliday !== undefined ? loadedData.allocatePublicHoliday : true;
+
 
                         // Reset entryCounter to avoid ID conflicts if new entries are added later
                         entryCounter = otEntries.length > 0 ? Math.max(...otEntries.map(e => parseInt(e.id.split('-')[2]))) + 1 : 0;
@@ -3202,6 +3227,12 @@
                         targetOTPaySelect.value = '';
                         customTargetOTPayInput.classList.add('hidden');
                         clearCustomTargetOTPayBtn.classList.add('hidden');
+
+                        // NEW: Set default checkbox states to true if no data found
+                        allocateWorkingDayCheckbox.checked = true;
+                        allocateOffDayCheckbox.checked = true;
+                        allocateRestDayCheckbox.checked = true;
+                        allocatePublicHolidayCheckbox.checked = true;
 
                         renderPublicHolidays();
                         renderOTMultiplierInputs();
@@ -3630,6 +3661,12 @@
                 toastContainer = document.getElementById('toastContainer');
                 chartPlaceholder = document.getElementById('chartPlaceholder'); // Assign the new element
 
+                // NEW: Assign allocation checkboxes
+                allocateWorkingDayCheckbox = document.getElementById('allocateWorkingDay');
+                allocateOffDayCheckbox = document.getElementById('allocateOffDay');
+                allocateRestDayCheckbox = document.getElementById('allocateRestDay');
+                allocatePublicHolidayCheckbox = document.getElementById('allocatePublicHoliday');
+
 
                 // --- Firebase Initialization ---
                 // Set initial state of the toggle
@@ -3766,6 +3803,12 @@
 
                 // New: Firebase toggle listener
                 firebaseToggle.addEventListener('change', handleFirebaseToggleChange);
+
+                // NEW: Add event listeners for the new allocation checkboxes
+                allocateWorkingDayCheckbox.addEventListener('change', calculateAndDisplayResults);
+                allocateOffDayCheckbox.addEventListener('change', calculateAndDisplayResults);
+                allocateRestDayCheckbox.addEventListener('change', calculateAndDisplayResults);
+                allocatePublicHolidayCheckbox.addEventListener('change', calculateAndDisplayResults);
 
 
                 // Initial Setup
