@@ -53,6 +53,8 @@
         .manual-entry-modal-content h4 { font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 15px; }
         .manual-entry-modal-content .input-group { margin-bottom: 20px; }
         .manual-entry-modal-content .modal-buttons { display: flex; justify-content: center; gap: 15px; }
+        .export-choice-modal .modal-buttons { flex-direction: column; }
+        .export-choice-modal .modal-buttons button { width: 100%; }
         @media (max-width: 768px) { .form-content, .summary-sidebar { padding: 20px; } }
         .loading-indicator { margin-left: 10px; font-size: 0.9em; color: var(--primary-indigo); font-weight: 500; }
         #userIdDisplay { font-size: 0.8em; color: var(--gray-600); text-align: right; margin-top: -15px; margin-bottom: 15px; word-break: break-all; }
@@ -354,6 +356,17 @@
                     Clear All Entries
                 </button>
             </div>
+            <!-- [NEW] Hour Adjustment Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <button id="addHourBtn" class="btn btn-secondary flex-grow" aria-label="Add 0.5 hour">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    Add 0.5 Hour
+                </button>
+                <button id="reduceHourBtn" class="btn btn-secondary flex-grow" aria-label="Reduce 0.5 hour">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                    Reduce 0.5 Hour
+                </button>
+            </div>
             <div id="calendarContainer" class="calendar-container"></div>
             <div class="flex flex-col sm:flex-row gap-4 mt-4">
                 <button id="saveDataBtn" class="btn btn-primary flex-grow" aria-label="Save current data">
@@ -411,7 +424,7 @@
             <div class="summary-inline-group mt-6"><strong>Total OT Hours by Type:</strong><span id="totalHoursByType" class="text-gray-700"></span></div>
             <div class="summary-inline-group"><strong>Total Pay per OT Category:</strong><span id="totalPayByCategory" class="text-gray-700"></span></div>
             <p class="text-base font-bold text-gray-900 mt-2">Allocation Strategy: <span id="allocationStrategySummary" class="text-gray-700"></span></p>
-            <button id="exportSummaryBtn" class="btn btn-secondary mt-6" aria-label="Export OT summary to text file">
+            <button id="exportSummaryBtn" class="btn btn-secondary mt-6" aria-label="Export OT summary">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                 Export Summary
             </button>
@@ -467,6 +480,30 @@
         </div>
     </div>
 </div>
+
+<!-- [NEW] Export Choice Modal -->
+<div id="exportChoiceModal" class="manual-entry-modal hidden export-choice-modal" role="dialog" aria-modal="true" aria-labelledby="exportChoiceModalTitle">
+    <div class="manual-entry-modal-content">
+        <h4 id="exportChoiceModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Choose Export Format</h4>
+        <p class="text-gray-700 mb-6">Select how you would like to export your OT summary.</p>
+        <div class="modal-buttons">
+            <button id="exportTxtBtn" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H5a1 1 0 110-2V4zm3 1a1 1 0 011-1h2a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                Text Summary (.txt)
+            </button>
+            <button id="exportCsvBtn" class="btn btn-secondary mt-4">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1a1 1 0 000 2h8a1 1 0 100-2H5zM5 9a1 1 0 000 2h2a1 1 0 100-2H5z" /></svg>
+                CSV File (.csv)
+            </button>
+            <button id="exportHtmlBtn" class="btn btn-secondary mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4V3a2 2 0 012-2h6a2 2 0 012 2v1h-1.5a.5.5 0 000 1H15v2H5V5h1.5a.5.5 0 000-1H5zm9 3H6a1 1 0 00-1 1v6a1 1 0 001 1h8a1 1 0 001-1V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                Printable Report
+            </button>
+            <button id="cancelExportChoiceBtn" class="btn btn-secondary mt-8">Cancel</button>
+        </div>
+    </div>
+</div>
+
 
 <div id="wizardModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="wizardTitle">
     <div class="manual-entry-modal-content" style="max-width:500px">
@@ -555,19 +592,22 @@
         OT_MULTIPLIERS: { ...DEFAULT_OT_MULTIPLIERS },
         WORKLOAD_PRESETS: {
             "Light Workload": {
-                "Normal OT (Weekdays)": { minHours: 1, maxHours: 5 },
+                "Normal OT (Weekdays)": { minHours: 1, maxHours: 4 },
                 "Off Day (Saturday)": { minHours: 2, maxHours: 5 },
                 "Rest Day (Sunday)": { minHours: 2, maxHours: 6 },
+                "Public Holiday": { minHours: 4, maxHours: 8 },
             },
             "Moderate Workload": {
-                "Normal OT (Weekdays)": { minHours: 2, maxHours: 7 },
+                "Normal OT (Weekdays)": { minHours: 2, maxHours: 6 },
                 "Off Day (Saturday)": { minHours: 3, maxHours: 8 },
                 "Rest Day (Sunday)": { minHours: 4, maxHours: 8 },
+                "Public Holiday": { minHours: 5, maxHours: 8 },
             },
             "Heavy Workload": {
                 "Normal OT (Weekdays)": { minHours: 3, maxHours: 8 },
                 "Off Day (Saturday)": { minHours: 5, maxHours: 8 },
                 "Rest Day (Sunday)": { minHours: 6, maxHours: 8 },
+                "Public Holiday": { minHours: 6, maxHours: 8 },
             },
         }
     };
@@ -621,6 +661,8 @@
         autoAllocateLoading: document.getElementById('autoAllocateLoading'),
         clearAllEntriesBtn: document.getElementById('clearAllEntriesBtn'),
         resetAndReallocateBtn: document.getElementById('resetAndReallocateBtn'),
+        addHourBtn: document.getElementById('addHourBtn'),
+        reduceHourBtn: document.getElementById('reduceHourBtn'),
         allocateCheckboxes: {
             workingDay: document.getElementById('allocateWorkingDay'),
             offDay: document.getElementById('allocateOffDay'),
@@ -690,6 +732,13 @@
             clearAndAllocateBtn: document.getElementById('clearAndAllocateBtn'),
             fillRemainingBtn: document.getElementById('fillRemainingBtn'),
             cancelBtn: document.getElementById('cancelAllocationChoiceBtn'),
+        },
+        exportChoiceModal: {
+            container: document.getElementById('exportChoiceModal'),
+            exportTxtBtn: document.getElementById('exportTxtBtn'),
+            exportCsvBtn: document.getElementById('exportCsvBtn'),
+            exportHtmlBtn: document.getElementById('exportHtmlBtn'),
+            cancelBtn: document.getElementById('cancelExportChoiceBtn'),
         },
         wizardModal: {
             container: document.getElementById('wizardModal'),
@@ -770,7 +819,7 @@
     }
 
     /** Show a toast notification. */
-    function showToast(message, type = 'info') {
+    function showToast(message, type = 'info', duration = 3000) {
         const toast = document.createElement('div');
         toast.classList.add('toast', type);
         toast.textContent = message;
@@ -781,7 +830,7 @@
         setTimeout(() => {
             toast.classList.remove('show');
             toast.addEventListener('transitionend', () => toast.remove(), { once: true });
-        }, 3000);
+        }, duration);
     }
     
     /** Show or hide the main loading overlay. */
@@ -1237,16 +1286,30 @@
         }
     }
     
-    /** Generate a random but realistic number of OT hours. */
-    function getRandomHours() {
-        const rand = Math.random();
-        if (rand < 0.30) return 2.0;
-        if (rand < 0.55) return 4.0;
-        if (rand < 0.70) return 1.0;
-        if (rand < 0.80) return 3.0;
-        if (rand < 0.85) return 8.0;
-        const fractions = [0.5, 1.5, 2.5, 3.5, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5];
-        return fractions[Math.floor(Math.random() * fractions.length)];
+    /**
+     * [ENHANCEMENT] Generate a random but realistic number of OT hours based on workload presets.
+     * @param {string} dayType - The type of day (e.g., "Normal OT (Weekdays)").
+     * @param {string} workloadPresetName - The name of the selected workload preset.
+     * @returns {number} A random number of hours.
+     */
+    function getRandomHours(dayType, workloadPresetName) {
+        const preset = CONFIG.WORKLOAD_PRESETS[workloadPresetName];
+        const dayConfig = preset[dayType];
+
+        if (!dayConfig) {
+            // Fallback for day types not in preset (e.g., Public Holiday might not be in all)
+            const rand = Math.random();
+            if (rand < 0.30) return 2.0;
+            if (rand < 0.55) return 4.0;
+            if (rand < 0.70) return 1.0;
+            return 3.0;
+        }
+        
+        const { minHours, maxHours } = dayConfig;
+        // Generate a random number between min and max, in 0.5 increments
+        const range = (maxHours - minHours) * 2; // Number of half-hour slots
+        const randomSlot = Math.floor(Math.random() * (range + 1));
+        return minHours + (randomSlot / 2);
     }
 
     /** Add or update an OT entry. */
@@ -1352,8 +1415,8 @@
     function updatePublicHolidayPickerRange() {
         if (DOMElements.publicHolidayDateInput._flatpickr) {
             const selectedDates = mainDatePicker.selectedDates;
-            const minDate = formatDate(selectedDates[0]);
-            const maxDate = formatDate(selectedDates[1]);
+            const minDate = selectedDates[0] ? formatDate(selectedDates[0]) : undefined;
+            const maxDate = selectedDates[1] ? formatDate(selectedDates[1]) : undefined;
             DOMElements.publicHolidayDateInput._flatpickr.set('minDate', minDate);
             DOMElements.publicHolidayDateInput._flatpickr.set('maxDate', maxDate);
             DOMElements.publicHolidayDateInput._flatpickr.redraw();
@@ -1470,7 +1533,189 @@
         );
     }
     
-    /** Main function to auto-allocate OT hours based on strategy. */
+    // --- AUTO-ALLOCATION LOGIC (REFACTORED) ---
+
+    /** [ENHANCEMENT] Checks if the user's goals are theoretically possible before allocation. */
+    function preAllocationSanityCheck(context) {
+        const { targetOTPay, maxHours, hourlyRate, availableDays } = context;
+
+        if (targetOTPay === null || maxHours === null) {
+            return; // No check needed if targets aren't set
+        }
+
+        // Simulate "Fastest Path" to find max possible pay within hour limit
+        const daysByPayRate = [...availableDays].sort((a, b) => {
+            const payA = calculateOTPay(hourlyRate, 1, getDayType(a.date), a.date);
+            const payB = calculateOTPay(hourlyRate, 1, getDayType(b.date), b.date);
+            return payB - payA;
+        });
+
+        let simulatedPay = 0;
+        let simulatedHours = 0;
+        for (const day of daysByPayRate) {
+            const remainingHoursAllowed = maxHours - simulatedHours;
+            if (remainingHoursAllowed <= 0) break;
+
+            const hoursToAdd = Math.min(CONFIG.MAX_DAILY_OT_HOURS, remainingHoursAllowed);
+            simulatedPay += calculateOTPay(hourlyRate, hoursToAdd, getDayType(day.date), day.date);
+            simulatedHours += hoursToAdd;
+        }
+
+        if (targetOTPay > simulatedPay) {
+            showToast(
+                `Warning: Your pay target of ${formatCurrency(targetOTPay)} may be unreachable. The maximum possible pay with your settings is approx. ${formatCurrency(simulatedPay)}.`,
+                'warning',
+                6000
+            );
+        }
+    }
+
+    /** [REFACTORED] Handles the "Target-Driven" allocation strategy. */
+    async function allocateForTargetPay(context) {
+        const { hourlyRate, subStrategy } = context;
+        let { payToReach, availableDays } = context;
+
+        if (payToReach <= CONFIG.ALLOCATION_PRECISION) {
+            showToast('Target OT pay has already been met with existing entries.', 'info');
+            return;
+        }
+
+        if (subStrategy === 'Balanced') {
+            availableDays = availableDays.sort(() => Math.random() - 0.5);
+        } else {
+            availableDays.sort((a, b) => {
+                const multiplierA = CONFIG.OT_MULTIPLIERS[getDayType(a.date)];
+                const multiplierB = CONFIG.OT_MULTIPLIERS[getDayType(b.date)];
+                return subStrategy === 'Fastest Path' ? multiplierB - multiplierA : multiplierA - multiplierB;
+            });
+        }
+        
+        let iterations = 0;
+        const maxIterations = availableDays.length * 20;
+        while (payToReach > CONFIG.ALLOCATION_PRECISION && iterations < maxIterations && availableDays.length > 0) {
+            iterations++;
+            const dayIndex = (subStrategy === 'Balanced') ? Math.floor(Math.random() * availableDays.length) : 0;
+            const day = availableDays[dayIndex];
+            const dayType = getDayType(day.date);
+            const existingHours = context.hoursByDate[day.date] || 0;
+            
+            let hoursLimit = CONFIG.MAX_DAILY_OT_HOURS - existingHours;
+            if (context.maxHours !== null) {
+                hoursLimit = Math.min(hoursLimit, context.maxHours - context.currentHours);
+            }
+            if (hoursLimit <= 0) {
+                availableDays.splice(dayIndex, 1);
+                continue;
+            }
+
+            let hoursToAdd = getRandomHours(dayType, context.workloadPreset); // Enhanced random hours
+            hoursToAdd = Math.min(hoursToAdd, hoursLimit);
+            
+            let payForHours = calculateOTPay(hourlyRate, existingHours + hoursToAdd, dayType, day.date) - calculateOTPay(hourlyRate, existingHours, dayType, day.date);
+
+            // [ENHANCEMENT] More precise adjustment to not overshoot the target
+            if (payForHours > payToReach) {
+                // Estimate pay per half-hour to make a more intelligent adjustment
+                const payPerHalfHour = calculateOTPay(hourlyRate, existingHours + 0.5, dayType, day.date) - calculateOTPay(hourlyRate, existingHours, dayType, day.date);
+                if (payPerHalfHour > 0) {
+                    const overshootAmount = payForHours - payToReach;
+                    const halfHoursToRemove = Math.floor(overshootAmount / payPerHalfHour);
+                    hoursToAdd -= halfHoursToRemove * 0.5;
+                }
+                // Final check, reduce by one more if still over
+                hoursToAdd = Math.max(0.5, hoursToAdd);
+                payForHours = calculateOTPay(hourlyRate, existingHours + hoursToAdd, dayType, day.date) - calculateOTPay(hourlyRate, existingHours, dayType, day.date);
+                if(payForHours > payToReach) {
+                    hoursToAdd -= 0.5;
+                }
+            }
+
+
+            if (hoursToAdd > 0) {
+                payForHours = calculateOTPay(hourlyRate, existingHours + hoursToAdd, dayType, day.date) - calculateOTPay(hourlyRate, existingHours, dayType, day.date);
+                addOrUpdateEntry(day.date, hoursToAdd, dayType);
+                context.currentPay += payForHours;
+                context.currentHours += hoursToAdd;
+                context.hoursByDate[day.date] = (context.hoursByDate[day.date] || 0) + hoursToAdd;
+                payToReach = context.targetOTPay - context.currentPay;
+            }
+            
+            if (subStrategy !== 'Balanced') {
+                availableDays.shift();
+            }
+            await sleep(0);
+        }
+
+        if (context.currentPay < context.targetOTPay) {
+             showToast(`Target was not fully met (${formatCurrency(context.currentPay)}).`, 'warning');
+        } else {
+            showToast('Overtime hours allocated to meet your target.', 'success');
+        }
+    }
+
+    /** [REFACTORED] Handles the "Workload-Driven" allocation strategy. */
+    async function allocateForWorkload(context) {
+        let { availableDays } = context;
+        availableDays = availableDays.sort(() => Math.random() - 0.5);
+
+        for (const day of availableDays) {
+            if (context.maxHours !== null && context.currentHours >= context.maxHours - CONFIG.ALLOCATION_PRECISION) {
+                showToast(`Max Total OT Hours (${context.maxHours.toFixed(1)}h) reached.`, 'info');
+                break;
+            }
+            const existingHours = context.hoursByDate[day.date] || 0;
+            const hoursLimit = CONFIG.MAX_DAILY_OT_HOURS - existingHours;
+            const dayType = getDayType(day.date);
+            
+            if (hoursLimit <= 0) continue;
+            
+            let hoursToAdd = getRandomHours(dayType, context.workloadPreset); // Enhanced random hours
+            hoursToAdd = Math.min(hoursToAdd, hoursLimit);
+            if (context.maxHours !== null) {
+                hoursToAdd = Math.min(hoursToAdd, context.maxHours - context.currentHours);
+            }
+
+            if (hoursToAdd > CONFIG.ALLOCATION_PRECISION) {
+                addOrUpdateEntry(day.date, hoursToAdd, dayType);
+                context.currentHours += hoursToAdd;
+                context.hoursByDate[day.date] = (context.hoursByDate[day.date] || 0) + hoursToAdd;
+            }
+            await sleep(0);
+        }
+        showToast('Overtime hours allocated based on workload preset.', 'success');
+    }
+
+    /** [REFACTORED] Ensures the minimum hour requirement is met after primary allocation. */
+    async function ensureMinimumHours(context) {
+        if (context.minHours === null || context.currentHours >= context.minHours) return;
+
+        showToast(`Topping up hours to meet minimum of ${context.minHours}h...`, 'info');
+        await sleep(10);
+        let topUpDays = context.getAvailableDays().filter(d => (context.hoursByDate[d.date] || 0) < CONFIG.MAX_DAILY_OT_HOURS);
+        topUpDays.sort((a, b) => CONFIG.OT_MULTIPLIERS[getDayType(a.date)] - CONFIG.OT_MULTIPLIERS[getDayType(b.date)]); // Cheapest first
+
+        let topUpIterations = 0;
+        const maxTopUpIterations = topUpDays.length * 20; // Increased iterations
+        while (context.currentHours < context.minHours && topUpIterations < maxTopUpIterations && topUpDays.length > 0) {
+            topUpIterations++;
+            const day = topUpDays[0];
+            if ((context.hoursByDate[day.date] || 0) >= CONFIG.MAX_DAILY_OT_HOURS) {
+                topUpDays.shift();
+                continue;
+            }
+            const hoursToAdd = 0.5;
+            addOrUpdateEntry(day.date, hoursToAdd, getDayType(day.date));
+            context.currentHours += hoursToAdd;
+            context.hoursByDate[day.date] = (context.hoursByDate[day.date] || 0) + hoursToAdd;
+            topUpDays.push(topUpDays.shift()); // Rotate
+            await sleep(0);
+        }
+        if (context.currentHours < context.minHours) {
+            showToast(`Could not meet minimum hour target. Reached ${context.currentHours.toFixed(1)}h.`, 'warning');
+        }
+    }
+    
+    /** [REFACTORED] Main function to auto-allocate OT hours based on strategy. */
     async function runAutoAllocation(clearExistingInRange) {
         toggleLoadingOverlay(true);
         DOMElements.autoAllocateLoading.classList.remove('hidden');
@@ -1486,14 +1731,14 @@
             const endDateStr = selectedDates[1] ? formatDate(selectedDates[1]) : '';
 
             if (isNaN(basicSalary) || basicSalary <= 0 || !startDateStr || !endDateStr || new Date(startDateStr) > new Date(endDateStr) || !validateHourInputs()) {
-                return showToast('Please ensure all settings (Salary, Date Range, Hour Limits) are valid.', 'error');
+                showToast('Please ensure all settings (Salary, Date Range, Hour Limits) are valid.', 'error');
+                throw new Error("Invalid settings for allocation.");
             }
 
             let currentPay = 0;
             let currentHours = 0;
             const hoursByDate = {};
             
-            // Handle existing entries
             if (clearExistingInRange) {
                 clearAllEntries();
             } else {
@@ -1514,7 +1759,8 @@
             }
 
             if (maxHours !== null && currentHours >= maxHours - CONFIG.ALLOCATION_PRECISION) {
-                return showToast(`Max Total OT Hours (${maxHours.toFixed(1)}h) already met.`, 'warning');
+                showToast(`Max Total OT Hours (${maxHours.toFixed(1)}h) already met.`, 'warning');
+                throw new Error("Max hours already met.");
             }
             
             const hourlyRate = calculateHourlyRate(basicSalary);
@@ -1528,173 +1774,40 @@
 
             const getAvailableDays = () => dateRange.filter(day => {
                 if ((hoursByDate[day.date] || 0) >= CONFIG.MAX_DAILY_OT_HOURS) return false;
-                const isPH = isPublicHoliday(day.date);
-                if (isPH && allocationPrefs.publicHoliday) return true;
-                if (!isPH) {
-                    if (day.dayOfWeek >= 1 && day.dayOfWeek <= 5 && allocationPrefs.workingDay) return true;
-                    if (day.dayOfWeek === 6 && allocationPrefs.offDay) return true;
-                    if (day.dayOfWeek === 0 && allocationPrefs.restDay) return true;
-                }
+                const dayType = getDayType(day.date);
+                if (dayType === "Public Holiday" && allocationPrefs.publicHoliday) return true;
+                if (dayType === "Normal OT (Weekdays)" && allocationPrefs.workingDay) return true;
+                if (dayType === "Off Day (Saturday)" && allocationPrefs.offDay) return true;
+                if (dayType === "Rest Day (Sunday)" && allocationPrefs.restDay) return true;
                 return false;
             });
+            
+            const allocationContext = {
+                hourlyRate,
+                targetOTPay,
+                minHours,
+                maxHours,
+                currentPay,
+                currentHours,
+                hoursByDate,
+                dateRange,
+                allocationStrategy: currentAllocationStrategy,
+                subStrategy: DOMElements.targetAllocationStrategySelect.value,
+                workloadPreset: DOMElements.workloadPresetSelect.value,
+                payToReach: targetOTPay !== null ? targetOTPay - currentPay : 0,
+                availableDays: getAvailableDays(),
+                getAvailableDays // Function to refresh the list
+            };
 
-            // --- Target-Driven Allocation ---
-            if (currentAllocationStrategy === 'Target-Driven') {
-                if (targetOTPay === null || targetOTPay <= 0) {
-                    return showToast('Please enter a valid Target OT Pay (> RM0) for Target-Driven allocation.', 'error');
-                }
-                let payToReach = targetOTPay - currentPay;
-                if (payToReach <= CONFIG.ALLOCATION_PRECISION) {
-                    showToast('Target OT pay has already been met with existing entries.', 'info');
-                }
-                
-                const subStrategy = DOMElements.targetAllocationStrategySelect.value;
-                let availableDays = getAvailableDays();
+            preAllocationSanityCheck(allocationContext);
 
-                if (subStrategy === 'Balanced') {
-                    availableDays = availableDays.sort(() => Math.random() - 0.5);
-                } else {
-                    availableDays.sort((a, b) => {
-                        const multiplierA = CONFIG.OT_MULTIPLIERS[getDayType(a.date)];
-                        const multiplierB = CONFIG.OT_MULTIPLIERS[getDayType(b.date)];
-                        return subStrategy === 'Fastest Path' ? multiplierB - multiplierA : multiplierA - multiplierB;
-                    });
-                }
-                
-                let iterations = 0;
-                const maxIterations = availableDays.length * 20;
-                while (payToReach > CONFIG.ALLOCATION_PRECISION && iterations < maxIterations && availableDays.length > 0) {
-                    iterations++;
-                    let dayIndex = (subStrategy === 'Balanced') ? Math.floor(Math.random() * availableDays.length) : 0;
-                    const day = availableDays[dayIndex];
-                    const existingHours = hoursByDate[day.date] || 0;
-                    
-                    let hoursLimit = CONFIG.MAX_DAILY_OT_HOURS - existingHours;
-                    if (maxHours !== null) {
-                        hoursLimit = Math.min(hoursLimit, maxHours - currentHours);
-                    }
-                    if (hoursLimit <= 0) {
-                        availableDays.splice(dayIndex, 1);
-                        continue;
-                    }
-
-                    let hoursToAdd = getRandomHours();
-                    hoursToAdd = Math.min(hoursToAdd, hoursLimit);
-                    
-                    let dayType = getDayType(day.date);
-                    let payForHours = calculateOTPay(hourlyRate, existingHours + hoursToAdd, dayType, day.date) - calculateOTPay(hourlyRate, existingHours, dayType, day.date);
-
-                    // Adjust hours down to not overshoot the target
-                    while (hoursToAdd > 0.5 && payForHours > payToReach) {
-                        hoursToAdd -= 0.5;
-                        payForHours = calculateOTPay(hourlyRate, existingHours + hoursToAdd, dayType, day.date) - calculateOTPay(hourlyRate, existingHours, dayType, day.date);
-                    }
-
-                    if (payForHours <= payToReach && hoursToAdd > 0) {
-                        addOrUpdateEntry(day.date, hoursToAdd, dayType);
-                        currentPay += payForHours;
-                        currentHours += hoursToAdd;
-                        hoursByDate[day.date] = (hoursByDate[day.date] || 0) + hoursToAdd;
-                        payToReach = targetOTPay - currentPay;
-                    }
-                    
-                    if (subStrategy !== 'Balanced') {
-                        availableDays.shift();
-                    }
-                    await sleep(0);
-                }
-                
-                // Top-up if target not met
-                if (currentPay < targetOTPay - CONFIG.ALLOCATION_PRECISION) {
-                    showToast(`Target was not fully met (${formatCurrency(currentPay)}). Topping up...`, 'warning');
-                    await sleep(10);
-                    let topUpDays = getAvailableDays().filter(d => (hoursByDate[d.date] || 0) < CONFIG.MAX_DAILY_OT_HOURS);
-                    topUpDays.sort((a,b) => CONFIG.OT_MULTIPLIERS[getDayType(a.date)] - CONFIG.OT_MULTIPLIERS[getDayType(b.date)]); // Cheapest first
-                    
-                    let topUpIterations = 0;
-                    const maxTopUpIterations = topUpDays.length * 10;
-                    while (currentPay < targetOTPay && topUpIterations < maxTopUpIterations && topUpDays.length > 0) {
-                        topUpIterations++;
-                        const day = topUpDays[0];
-                        if ((hoursByDate[day.date] || 0) >= CONFIG.MAX_DAILY_OT_HOURS) {
-                            topUpDays.shift();
-                            continue;
-                        }
-                        const hoursToAdd = 0.5;
-                        const existingHours = hoursByDate[day.date] || 0;
-                        const payForHours = calculateOTPay(hourlyRate, existingHours + hoursToAdd, getDayType(day.date), day.date) - calculateOTPay(hourlyRate, existingHours, getDayType(day.date), day.date);
-
-                        addOrUpdateEntry(day.date, hoursToAdd, getDayType(day.date));
-                        currentPay += payForHours;
-                        currentHours += hoursToAdd;
-                        hoursByDate[day.date] = (hoursByDate[day.date] || 0) + hoursToAdd;
-                        topUpDays.push(topUpDays.shift()); // Rotate
-                        await sleep(0);
-                    }
-                } else {
-                    showToast('Overtime hours allocated to meet your target.', 'success');
-                }
-
-            // --- Workload-Driven Allocation ---
-            } else if (currentAllocationStrategy === 'Workload-Driven') {
-                const preset = CONFIG.WORKLOAD_PRESETS[DOMElements.workloadPresetSelect.value];
-                let availableDays = getAvailableDays().sort(() => Math.random() - 0.5);
-
-                for (const day of availableDays) {
-                    if (maxHours !== null && currentHours >= maxHours - CONFIG.ALLOCATION_PRECISION) {
-                        showToast(`Max Total OT Hours (${maxHours.toFixed(1)}h) reached.`, 'info');
-                        break;
-                    }
-                    const existingHours = hoursByDate[day.date] || 0;
-                    const hoursLimit = CONFIG.MAX_DAILY_OT_HOURS - existingHours;
-                    const dayType = getDayType(day.date);
-                    const presetConfig = preset[dayType];
-                    
-                    if (!presetConfig || hoursLimit <= 0) continue;
-                    
-                    let hoursToAdd = getRandomHours();
-                    hoursToAdd = Math.min(hoursToAdd, hoursLimit, presetConfig.maxHours);
-                    if (maxHours !== null) {
-                        hoursToAdd = Math.min(hoursToAdd, maxHours - currentHours);
-                    }
-
-                    if (hoursToAdd > CONFIG.ALLOCATION_PRECISION) {
-                        addOrUpdateEntry(day.date, hoursToAdd, dayType);
-                        currentHours += hoursToAdd;
-                        hoursByDate[day.date] = (hoursByDate[day.date] || 0) + hoursToAdd;
-                    }
-                    await sleep(0);
-                }
-                showToast('Overtime hours allocated based on workload preset.', 'success');
+            if (allocationContext.allocationStrategy === 'Target-Driven' && allocationContext.targetOTPay > 0) {
+                await allocateForTargetPay(allocationContext);
+            } else {
+                await allocateForWorkload(allocationContext);
             }
 
-            // --- Final check for minimum hours ---
-            if (minHours !== null && currentHours < minHours) {
-                showToast(`Topping up hours to meet minimum of ${minHours}h...`, 'info');
-                await sleep(10);
-                let topUpDays = getAvailableDays().filter(d => (hoursByDate[d.date] || 0) < CONFIG.MAX_DAILY_OT_HOURS);
-                topUpDays.sort((a, b) => CONFIG.OT_MULTIPLIERS[getDayType(a.date)] - CONFIG.OT_MULTIPLIERS[getDayType(b.date)]); // Cheapest first
-
-                let topUpIterations = 0;
-                const maxTopUpIterations = topUpDays.length * 10;
-                while (currentHours < minHours && topUpIterations < maxTopUpIterations && topUpDays.length > 0) {
-                    topUpIterations++;
-                    const day = topUpDays[0];
-                    if ((hoursByDate[day.date] || 0) >= CONFIG.MAX_DAILY_OT_HOURS) {
-                        topUpDays.shift();
-                        continue;
-                    }
-                    const hoursToAdd = 0.5;
-                    addOrUpdateEntry(day.date, hoursToAdd, getDayType(day.date));
-                    currentHours += hoursToAdd;
-                    hoursByDate[day.date] = (hoursByDate[day.date] || 0) + hoursToAdd;
-                    topUpDays.push(topUpDays.shift()); // Rotate
-                    await sleep(0);
-                }
-                if (currentHours < minHours) {
-                    showToast(`Could not meet minimum hour target. Reached ${currentHours.toFixed(1)}h.`, 'warning');
-                }
-            }
+            await ensureMinimumHours(allocationContext);
 
             finalizeAndSortEntries();
             otEntries.forEach(e => delete e.isNew);
@@ -1702,13 +1815,81 @@
             updateAllCalculations();
 
         } catch (error) {
-            console.error("Error during auto-allocation:", error);
-            showToast('An error occurred during auto-allocation. Please check console.', 'error');
+            if(error.message !== "Invalid settings for allocation." && error.message !== "Max hours already met.") {
+                 console.error("Error during auto-allocation:", error);
+                 showToast('An error occurred during auto-allocation. Please check console.', 'error');
+            }
         } finally {
             toggleLoadingOverlay(false);
             DOMElements.autoAllocateLoading.classList.add('hidden');
             DOMElements.autoAllocateLoading.removeAttribute('aria-live');
         }
+    }
+    
+    /** [NEW] Incrementally adds or removes 0.5 hours. */
+    function adjustHours(amount) {
+        const basicSalary = parseFloat(DOMElements.basicSalaryInput.value);
+        if (isNaN(basicSalary) || basicSalary <= 0) {
+            showToast('Please set a valid basic salary first.', 'error');
+            return;
+        }
+        const hourlyRate = calculateHourlyRate(basicSalary);
+
+        if (amount > 0) { // Adding hours
+            const availableDays = getDateRangeArray(formatDate(mainDatePicker.selectedDates[0]), formatDate(mainDatePicker.selectedDates[1]))
+                .map(day => ({ ...day, payRate: calculateOTPay(hourlyRate, 1, getDayType(day.date), day.date) }))
+                .filter(day => {
+                    const existingEntry = otEntries.find(e => e.date === day.date);
+                    return (!existingEntry || existingEntry.hours < CONFIG.MAX_DAILY_OT_HOURS);
+                })
+                .sort((a, b) => a.payRate - b.payRate); // Sort by cheapest first
+
+            if (availableDays.length > 0) {
+                const dayToAdd = availableDays[0];
+                addOrUpdateEntry(dayToAdd.date, amount, getDayType(dayToAdd.date));
+                showToast(`Added 0.5h to ${dayToAdd.date}`, 'success');
+            } else {
+                showToast('No available days to add more hours.', 'warning');
+                return;
+            }
+        } else { // Reducing hours
+            const entriesWithHours = otEntries
+                .filter(entry => entry.hours > 0)
+                .map(entry => ({ ...entry, payRate: calculateOTPay(hourlyRate, 1, entry.type, entry.date) }))
+                .sort((a, b) => b.payRate - a.payRate); // Sort by most expensive first
+
+            if (entriesWithHours.length > 0) {
+                const entryToReduce = entriesWithHours[0];
+                const existingEntry = otEntries.find(e => e.id === entryToReduce.id);
+                existingEntry.hours += amount; // amount is negative
+                showToast(`Reduced 0.5h from ${existingEntry.date}`, 'success');
+                if (existingEntry.hours <= 0) {
+                    otEntries = otEntries.filter(e => e.id !== existingEntry.id);
+                }
+            } else {
+                showToast('No overtime entries to reduce.', 'warning');
+                return;
+            }
+        }
+        renderCalendar();
+        updateAllCalculations();
+    }
+
+    // --- [ENHANCED] EXPORT FUNCTIONS ---
+
+    /** Show the export format choice modal. */
+    function showExportChoiceModal() {
+        DOMElements.exportChoiceModal.container.classList.remove('hidden');
+        DOMElements.exportChoiceModal.container.classList.add('show');
+        window.lastFocusedElement = document.activeElement;
+        DOMElements.exportChoiceModal.exportTxtBtn.focus();
+    }
+
+    /** Hide the export format choice modal. */
+    function hideExportChoiceModal() {
+        DOMElements.exportChoiceModal.container.classList.add('hidden');
+        DOMElements.exportChoiceModal.container.classList.remove('show');
+        window.lastFocusedElement?.focus();
     }
     
     /** Export a text summary of the calculations. */
@@ -1828,6 +2009,176 @@
         } catch (error) {
             console.error('Error during export summary:', error);
             showToast('Failed to export summary. Please check your browser console for details.', 'error');
+        }
+    }
+
+    /** Export data to a CSV file. */
+    function exportToCSV() {
+        try {
+            const basicSalary = parseFloat(DOMElements.basicSalaryInput.value);
+            const hourlyRate = calculateHourlyRate(basicSalary);
+            const selectedDates = mainDatePicker.selectedDates;
+            const startDateStr = selectedDates[0] ? formatDate(selectedDates[0]) : '';
+            const endDateStr = selectedDates[1] ? formatDate(selectedDates[1]) : '';
+
+            const headers = ['Date', 'Day', 'Type', 'Hours', 'StartTime', 'EndTime', 'Pay_RM'];
+            let csvContent = headers.join(',') + '\r\n';
+
+            const entriesInRange = otEntries.filter(entry => {
+                const entryDate = new Date(entry.date);
+                const startDate = startDateStr ? new Date(startDateStr) : null;
+                const endDate = endDateStr ? new Date(endDateStr) : null;
+                return !(startDate && endDate && (entryDate < startDate || entryDate > endDate));
+            });
+            
+            entriesInRange.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            entriesInRange.forEach(entry => {
+                const date = new Date(entry.date + 'T00:00:00');
+                const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const pay = calculateOTPay(hourlyRate, entry.hours, entry.type, entry.date);
+                const row = [
+                    entry.date,
+                    dayOfWeek,
+                    entry.type,
+                    entry.hours.toFixed(2),
+                    entry.startTime || '',
+                    entry.endTime || '',
+                    pay.toFixed(2)
+                ];
+                csvContent += row.join(',') + '\r\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ot_summary.csv';
+            document.body.appendChild(a);
+            a.click();
+            showToast('Your CSV file is being downloaded.', 'success');
+             setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 250);
+        } catch (error) {
+            console.error('Error during CSV export:', error);
+            showToast('Failed to export CSV. Please check console.', 'error');
+        }
+    }
+
+    /** Generate and open a printable HTML report. */
+    function exportToPrintableHTML() {
+        try {
+            const basicSalary = parseFloat(DOMElements.basicSalaryInput.value);
+            const hourlyRate = calculateHourlyRate(basicSalary);
+            const targetOTPay = getTargetOTPay();
+            const { minHours, maxHours } = getMinMaxHours();
+            const selectedDates = mainDatePicker.selectedDates;
+            const startDateStr = selectedDates[0] ? formatDate(selectedDates[0]) : '';
+            const endDateStr = selectedDates[1] ? formatDate(selectedDates[1]) : '';
+            
+            const entriesInRange = otEntries.filter(entry => {
+                const entryDate = new Date(entry.date);
+                const startDate = startDateStr ? new Date(startDateStr) : null;
+                const endDate = endDateStr ? new Date(endDateStr) : null;
+                return !(startDate && endDate && (entryDate < startDate || entryDate > endDate));
+            });
+            entriesInRange.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            let totalCombinedOTPay = 0;
+            let totalMonthlyOTHours = 0;
+            entriesInRange.forEach(entry => {
+                totalMonthlyOTHours += entry.hours;
+                totalCombinedOTPay += calculateOTPay(hourlyRate, entry.hours, entry.type, entry.date);
+            });
+            const expectedSalary = basicSalary + totalCombinedOTPay;
+
+            let tableRows = '';
+            entriesInRange.forEach(entry => {
+                 const date = new Date(entry.date + 'T00:00:00');
+                 const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+                 const pay = calculateOTPay(hourlyRate, entry.hours, entry.type, entry.date);
+                 tableRows += `
+                    <tr>
+                        <td>${entry.date}</td>
+                        <td>${dayOfWeek}</td>
+                        <td>${entry.type}</td>
+                        <td>${entry.hours.toFixed(2)}</td>
+                        <td>${entry.startTime || 'N/A'}</td>
+                        <td>${entry.endTime || 'N/A'}</td>
+                        <td>${formatCurrency(pay)}</td>
+                    </tr>
+                 `;
+            });
+
+            const htmlContent = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>OT Summary Report</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8f9fa; color: #333; }
+                        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+                        h1 { text-align: center; color: #1a202c; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; }
+                        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 30px; margin-bottom: 30px; }
+                        .summary-item { background-color: #f7fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
+                        .summary-item strong { display: block; font-size: 0.9rem; color: #718096; margin-bottom: 5px; }
+                        .summary-item span { font-size: 1.2rem; font-weight: 600; color: #2d3748; }
+                        .total { background-color: #edf2f7; border-color: #cbd5e0; }
+                        .total span { color: #4a5568; font-size: 1.4rem; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
+                        th { background-color: #f7fafc; font-weight: 600; }
+                        tr:nth-child(even) { background-color: #f7fafc; }
+                        @media print {
+                            body { background-color: #fff; }
+                            .container { box-shadow: none; border: 1px solid #ccc; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Overtime Summary Report</h1>
+                        <div class="summary-grid">
+                            <div class="summary-item"><strong_>Report Period</strong><span>${startDateStr} to ${endDateStr}</span></div>
+                            <div class="summary-item"><strong_>Basic Salary</strong><span>${formatCurrency(basicSalary)}</span></div>
+                            <div class="summary-item total"><strong_>Total OT Hours</strong><span>${totalMonthlyOTHours.toFixed(2)} hours</span></div>
+                            <div class="summary-item total"><strong_>Total OT Pay</strong><span>${formatCurrency(totalCombinedOTPay)}</span></div>
+                            <div class="summary-item"><strong_>Target OT Pay</strong><span>${targetOTPay !== null ? formatCurrency(targetOTPay) : 'N/A'}</span></div>
+                            <div class="summary-item total"><strong_>Total Expected Salary</strong><span>${formatCurrency(expectedSalary)}</span></div>
+                        </div>
+                        <h2>Detailed Entries</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Type</th>
+                                    <th>Hours</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Pay (RM)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows || '<tr><td colspan="7" style="text-align:center;">No entries for this period.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            showToast('Printable report is opening in a new tab.', 'success');
+        } catch (error) {
+            console.error('Error generating printable report:', error);
+            showToast('Failed to generate report. Please check console.', 'error');
         }
     }
 
@@ -2411,7 +2762,14 @@
         });
         
         DOMElements.clearAllEntriesBtn.addEventListener('click', confirmClearAllEntries);
-        DOMElements.exportSummaryBtn.addEventListener('click', exportSummary);
+        
+        // Export listeners
+        DOMElements.exportSummaryBtn.addEventListener('click', showExportChoiceModal);
+        DOMElements.exportChoiceModal.exportTxtBtn.addEventListener('click', () => { hideExportChoiceModal(); exportSummary(); });
+        DOMElements.exportChoiceModal.exportCsvBtn.addEventListener('click', () => { hideExportChoiceModal(); exportToCSV(); });
+        DOMElements.exportChoiceModal.exportHtmlBtn.addEventListener('click', () => { hideExportChoiceModal(); exportToPrintableHTML(); });
+        DOMElements.exportChoiceModal.cancelBtn.addEventListener('click', hideExportChoiceModal);
+
 
         DOMElements.saveDataBtn.addEventListener('click', saveUserData);
         DOMElements.loadDataBtn.addEventListener('click', () => loadUserData(false));
@@ -2422,6 +2780,10 @@
         DOMElements.addPublicHolidayDateBtn.addEventListener('click', addPublicHoliday);
         DOMElements.resetMultipliersBtn.addEventListener('click', confirmResetMultipliers);
         
+        // [NEW] Hour Adjustment Listeners
+        DOMElements.addHourBtn.addEventListener('click', () => adjustHours(0.5));
+        DOMElements.reduceHourBtn.addEventListener('click', () => adjustHours(-0.5));
+
         DOMElements.targetOTPaySelect.addEventListener('change', () => {
             if (DOMElements.targetOTPaySelect.value === 'custom') {
                 DOMElements.customTargetOTPayInput.classList.remove('hidden');
