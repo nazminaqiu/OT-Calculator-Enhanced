@@ -1,575 +1,4 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced OT Calculator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --primary-indigo: #6366f1; --dark-indigo: #4f46e5; --light-indigo: #e0e7ff; --lightest-indigo: #c7d2fe;
-            --danger-red: #ef4444; --dark-red: #dc2626; --success-green: #10b981; --info-blue: #3b82f6;
-            --warning-orange: #f59e0b; --gray-900: #1f2937; --gray-800: #374151; --gray-700: #4b5563;
-            --gray-600: #6b7280; --gray-500: #9ca3af; --gray-400: #d1d5db; --gray-300: #e5e7eb;
-            --gray-200: #f3f4f6; --gray-100: #f9fafb; --gray-50: #f9fafb;
-        }
-        body { font-family: 'Inter', sans-serif; background-color: var(--gray-200); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; box-sizing: border-box; }
-        .main-wrapper { display: flex; flex-direction: column; gap: 25px; max-width: 1200px; width: 100%; }
-        @media (min-width: 1024px) { .main-wrapper { flex-direction: row; align-items: flex-start; } }
-        .form-content { background-color: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); flex-grow: 1; width: 100%; }
-        @media (min-width: 1024px) { .form-content { min-width: 600px; } }
-        .summary-sidebar { background-color: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: sticky; top: 20px; align-self: flex-start; width: 100%; min-width: 300px; flex-shrink: 0; }
-        @media (min-width: 1024px) { .summary-sidebar { width: 350px; } }
-        .input-group label { font-weight: 600; color: var(--gray-800); margin-bottom: 8px; display: block; }
-        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid var(--gray-400); border-radius: 8px; font-size: 1rem; color: var(--gray-700); transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
-        .input-group input:focus, .input-group select:focus { outline: 0; border-color: var(--primary-indigo); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
-        .input-group select:disabled { background-color: var(--gray-200); cursor: not-allowed; }
-        .btn { padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-primary { background-color: var(--primary-indigo); color: #fff; }
-        .btn-primary:hover { background-color: var(--dark-indigo); transform: translateY(-1px); }
-        .btn-secondary { background-color: var(--light-indigo); color: var(--dark-indigo); }
-        .btn-secondary:hover { background-color: var(--lightest-indigo); transform: translateY(-1px); }
-        .btn-danger { background-color: var(--danger-red); color: #fff; }
-        .btn-danger:hover { background-color: var(--dark-red); transform: translateY(-1px); }
-        .results-section h3 { font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 15px; }
-        .results-section p { font-size: 1.1rem; margin-bottom: 8px; color: var(--gray-800); }
-        .results-section p strong { color: var(--gray-900); }
-        .message-box { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 1000; text-align: center; min-width: 300px; max-width: 90%; border: 1px solid var(--gray-400); opacity: 0; transform: translate(-50%, -50%) scale(0.9); transition: opacity 0.3s ease-out, transform 0.3s ease-out; }
-        .message-box.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .message-box h4 { font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 15px; }
-        .message-box p { font-size: 1.1rem; color: var(--gray-700); margin-bottom: 25px; }
-        .message-box-buttons { display: flex; justify-content: center; gap: 15px; }
-        .message-box button { background-color: var(--primary-indigo); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease-in-out; }
-        .message-box button:hover { background-color: var(--dark-indigo); }
-        .message-box .btn-cancel { background-color: var(--gray-300); color: var(--gray-700); }
-        .message-box .btn-cancel:hover { background-color: var(--gray-400); }
-        .manual-entry-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease-out; }
-        .manual-entry-modal.show { opacity: 1; }
-        .manual-entry-modal-content { background-color: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; min-width: 350px; max-width: 90%; border: 1px solid var(--gray-400); transform: scale(0.9); transition: transform 0.3s ease-out; }
-        .manual-entry-modal.show .manual-entry-modal-content { transform: scale(1); }
-        .manual-entry-modal-content h4 { font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 15px; }
-        .manual-entry-modal-content .input-group { margin-bottom: 20px; }
-        .manual-entry-modal-content .modal-buttons { display: flex; justify-content: center; gap: 15px; }
-        .export-choice-modal .modal-buttons { flex-direction: column; }
-        .export-choice-modal .modal-buttons button { width: 100%; }
-        @media (max-width: 768px) { .form-content, .summary-sidebar { padding: 20px; } }
-        .loading-indicator { margin-left: 10px; font-size: 0.9em; color: var(--primary-indigo); font-weight: 500; }
-        #userIdDisplay { font-size: 0.8em; color: var(--gray-600); text-align: right; margin-top: -15px; margin-bottom: 15px; word-break: break-all; }
-        .summary-inline-group { display: flex; flex-wrap: wrap; gap: 10px; font-size: 1rem; color: var(--gray-800); margin-bottom: 8px; }
-        .summary-inline-group strong { display: block; width: 100%; margin-bottom: 4px; }
-        .summary-inline-item { display: inline-block; padding: 4px 8px; background-color: var(--light-indigo); border-radius: 6px; color: var(--dark-indigo); font-weight: 500; }
-        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 10px 0; border-bottom: 1px solid #cbd5e0; margin-bottom: 15px; }
-        .collapsible-header h3 { margin-bottom: 0; }
-        .collapsible-content { overflow: hidden; transition: max-height 0.3s ease-out; }
-        .collapsible-content.collapsed { max-height: 0 !important; }
-        .collapsible-icon { transition: transform 0.3s ease-out; }
-        .collapsible-icon.rotated { transform: rotate(90deg); }
-        .input-error { border-color: var(--danger-red); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
-        .error-message { color: var(--danger-red); font-size: 0.85rem; margin-top: 4px; }
-        .status-message { margin-left: 10px; font-size: 0.9em; font-weight: 500; opacity: 0; transition: opacity 0.3s ease-in-out; }
-        .status-message.show { opacity: 1; }
-        .status-message.loading { color: var(--primary-indigo); }
-        .status-message.success { color: var(--success-green); }
-        .status-message.error { color: var(--danger-red); }
-        .input-with-clear { position: relative; display: flex; align-items: center; }
-        .input-with-clear input { padding-right: 36px; }
-        .clear-input-btn { position: absolute; right: 8px; background: 0 0; border: none; cursor: pointer; color: var(--gray-500); padding: 4px; border-radius: 50%; transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; display: flex; align-items: center; justify-content: center; }
-        .clear-input-btn:hover { background-color: var(--gray-300); color: var(--gray-700); }
-        .allocation-choice-modal .modal-buttons button { width: 100%; }
-        .allocation-choice-modal .modal-buttons { flex-direction: column; }
-        .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary-indigo); }
-        input:focus + .slider { box-shadow: 0 0 1px var(--primary-indigo); }
-        input:checked + .slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); }
-        #toastContainer { position: fixed; bottom: 1rem; right: 1rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; max-width: 300px; }
-        .toast { background-color: #333; color: #fff; padding: 0.75rem 1rem; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease-out, transform 0.3s ease-out; }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.info { background-color: var(--info-blue); }
-        .toast.success { background-color: var(--success-green); }
-        .toast.error { background-color: var(--danger-red); }
-        .toast.warning { background-color: var(--warning-orange); }
-        #loadingOverlay { transition: opacity .3s ease-in-out; }
-        .loader { border-top-color: var(--primary-indigo); animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tooltip-container { position: relative; display: inline-flex; align-items: center; margin-left: 0.5rem; cursor: help; }
-        .tooltip-content { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-0.5rem); background-color: #333; color: #fff; padding: 0.5rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s ease-out, transform 0.2s ease-out; z-index: 10; }
-        .tooltip-container:hover .tooltip-content { opacity: 1; transform: translateX(-50%) translateY(-1rem); }
-        .chart-container { position: relative; width: 100%; height: 256px; display: flex; align-items: center; justify-content: center; background-color: var(--gray-50); border-radius: 8px; overflow: hidden; }
-        .chart-placeholder { color: var(--gray-500); font-style: italic; text-align: center; padding: 1rem; }
-        .progress-bar-container { margin-top: 1.5rem; }
-        .progress-bar-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: 500; color: var(--gray-700); margin-bottom: 0.5rem; }
-        .progress-bar { width: 100%; height: 12px; background-color: var(--gray-200); border-radius: 9999px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; width: 0; border-radius: 9999px; transition: width 0.5s ease-out, background-color 0.5s ease-out; }
-        .calendar-container { margin-top: 1rem; }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .calendar-header h4 { font-size: 1.25rem; font-weight: 700; color: var(--gray-800); }
-        .calendar-nav button { background: 0 0; border: none; cursor: pointer; padding: 0.5rem; border-radius: 50%; transition: background-color 0.2s; }
-        .calendar-nav button:hover { background-color: var(--gray-200); }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-        .calendar-day-name { text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--gray-500); padding-bottom: 0.5rem; }
-        .calendar-day { position: relative; text-align: center; padding: 0.5rem 0; border-radius: 8px; cursor: pointer; transition: background-color .2s, border-color .2s; border: 2px solid transparent; }
-        .calendar-day:not(.disabled):hover { background-color: var(--light-indigo); }
-        .calendar-day.today { border-color: var(--primary-indigo); }
-        .calendar-day.has-ot { background-color: var(--primary-indigo); color: #fff; font-weight: 600; }
-        .calendar-day.has-ot:hover { background-color: var(--dark-indigo); }
-        .calendar-day.disabled { color: var(--gray-400); cursor: not-allowed; }
-        .calendar-day .ot-hours { position: absolute; bottom: 2px; right: 4px; font-size: 0.7rem; font-weight: 700; opacity: 0.8; }
-        .wizard-step { display: none; }
-        .wizard-step.active { display: block; }
-        .wizard-progress { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
-        .wizard-progress-dot { width: 12px; height: 12px; border-radius: 50%; background-color: var(--gray-300); transition: background-color .3s; }
-        .wizard-progress-dot.active { background-color: var(--primary-indigo); }
-    </style>
-</head>
-<body>
-
-<div class="main-wrapper">
-    <!-- Form Content -->
-    <div class="form-content">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-3xl font-extrabold text-gray-900">Enhanced OT Calculator</h2>
-            <button id="quickSetupBtn" class="btn btn-secondary" aria-label="Open Quick Setup">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L8 7.48l-4.73.34c-1.61.12-2.27 2.23-1.09 3.33l3.64 3.28-1.11 4.86c-.33 1.45 1.25 2.58 2.6 1.86L10 17.6l4.7 2.87c1.35.72 2.93-.41 2.6-1.86l-1.11-4.86 3.64-3.28c1.18-1.1.52-3.21-1.09-3.33L12 7.48l-.51-4.31z" clip-rule="evenodd" /></svg>
-                Quick Setup
-            </button>
-        </div>
-        <div id="userIdDisplay" class="hidden"></div>
-
-        <!-- How to Use Section -->
-        <div class="bg-blue-50 p-6 rounded-xl border border-blue-200 mb-6">
-            <div class="collapsible-header" data-target="howToUseContent">
-                <h3 class="text-xl font-bold text-blue-800">How to Use This Calculator</h3>
-                <svg class="collapsible-icon h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </div>
-            <div id="howToUseContent" class="collapsible-content">
-                <ul class="list-disc list-inside text-gray-700 space-y-2">
-                    <li><strong>1. Employee Settings:</strong> Enter your basic monthly salary. Optionally, set a target OT pay and/or min/max total hours.</li>
-                    <li><strong>2. OT Planning Date Range:</strong> Define the period for which you want to calculate or plan your overtime.</li>
-                    <li><strong>3. Public Holiday Management:</strong> Add any public holidays within your planning range.</li>
-                    <li><strong>4. OT Multiplier Settings:</strong> Adjust the overtime rates. Note: Rest Day (Sunday) pay is now automatically split for the first 8 hours and after.</li>
-                    <li><strong>5. Daily Overtime Entries:</strong>
-                        <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
-                            <li>Use the <strong>Interactive Calendar</strong> to manage your schedule. Click on a day to add or edit OT hours.</li>
-                            <li><strong>Allocation Strategy:</strong> Choose how hours are allocated.
-                                <ul>
-                                    <li><strong>Target-Driven:</strong> Automatically selected when you have a "Target OT Pay". This now treats your target as a <strong>minimum</strong>. Choose a sub-strategy:
-                                        <ul class="list-square list-inside ml-4">
-                                            <li><strong>Balanced:</strong> Uses a human-like, randomized approach to meet your target.</li>
-                                            <li><strong>Fastest Path:</strong> Prioritizes high-pay days to meet your target with fewer hours.</li>
-                                            <li><strong>Cheapest Path:</strong> Prioritizes low-pay days to maximize hours for a given target.</li>
-                                        </ul>
-                                    </li>
-                                    <li><strong>Workload-Driven:</strong> Automatically selected when you have no target. Allocates hours based on a "Workload Preset".</li>
-                                </ul>
-                            </li>
-                            <li>The logic now ensures your <strong>Min Total OT Hours</strong> target is met if possible, after the pay target is secured.</li>
-                            <li>Click "Auto Allocate Hours" to generate entries based on your chosen strategy.</li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Employee Settings -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Employee Settings</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div class="input-group">
-                    <label for="basicSalary">Basic Monthly Salary (RM)</label>
-                    <div class="input-with-clear">
-                        <input type="number" id="basicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm">
-                        <button type="button" class="clear-input-btn" aria-label="Clear Basic Monthly Salary">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label for="targetOTPaySelect">Target OT Pay (RM) (Optional)</label>
-                    <select id="targetOTPaySelect" class="shadow-sm mb-2">
-                        <option value="">No Target</option>
-                        <option value="custom">Other (Enter Manually)</option>
-                    </select>
-                    <div class="input-with-clear">
-                        <input type="number" id="customTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay">
-                        <button type="button" class="clear-input-btn hidden" id="clearCustomTargetOTPayBtn" aria-label="Clear Custom Target OT Pay">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label for="minTotalOTHours">Min Total OT Hours (Optional)
-                        <span class="tooltip-container">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span class="tooltip-content">The minimum total OT hours to aim for.</span>
-                        </span>
-                    </label>
-                    <div class="input-with-clear">
-                        <input type="number" id="minTotalOTHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 140">
-                        <button type="button" class="clear-input-btn" id="clearMinTotalOTHoursBtn" aria-label="Clear Min Total OT Hours">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                    <div id="minMaxHoursError" class="error-message"></div>
-                </div>
-                <div class="input-group">
-                    <label for="maxTotalOTHours">Max Total OT Hours (Optional)
-                        <span class="tooltip-container">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span class="tooltip-content">The maximum total OT hours not to exceed.</span>
-                        </span>
-                    </label>
-                    <div class="input-with-clear">
-                        <input type="number" id="maxTotalOTHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 150">
-                        <button type="button" class="clear-input-btn" id="clearMaxTotalOTHoursBtn" aria-label="Clear Max Total OT Hours">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-6">
-                <label class="block text-xl font-bold text-gray-800 mb-3">Auto-Allocate to:</label>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="flex items-center"><input type="checkbox" id="allocateWorkingDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked><label for="allocateWorkingDay" class="ml-2 text-gray-700 font-medium">Working Day</label></div>
-                    <div class="flex items-center"><input type="checkbox" id="allocateOffDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked><label for="allocateOffDay" class="ml-2 text-gray-700 font-medium">Off Day</label></div>
-                    <div class="flex items-center"><input type="checkbox" id="allocateRestDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked><label for="allocateRestDay" class="ml-2 text-gray-700 font-medium">Rest Day</label></div>
-                    <div class="flex items-center"><input type="checkbox" id="allocatePublicHoliday" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked><label for="allocatePublicHoliday" class="ml-2 text-gray-700 font-medium">Public Holiday</label></div>
-                </div>
-            </div>
-            <p class="text-sm text-gray-600 mt-4">Working Schedule: 5 days/week, Saturday: Off Day, Sunday: Rest Day. For payroll, employer uses 26 working days monthly.</p>
-        </div>
-
-        <!-- OT Planning Date Range -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">OT Planning Date Range</h3>
-            <div class="input-group">
-                <label for="dateRangeInput">Select Date Range</label>
-                <div class="flex items-center gap-2">
-                    <input id="dateRangeInput" class="shadow-sm flex-grow" placeholder="Click to select date range" readonly>
-                    <button type="button" id="setThisMonthBtn" class="btn btn-secondary p-2" aria-label="Set date range to this month">This Month</button>
-                </div>
-                <div id="dateRangeError" class="error-message"></div>
-            </div>
-        </div>
-
-        <!-- Public Holiday Management -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
-            <div class="collapsible-header" data-target="publicHolidaysContent">
-                <h3 class="text-xl font-bold text-gray-800">Public Holiday Management</h3>
-                <svg class="collapsible-icon h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </div>
-            <div id="publicHolidaysContent" class="collapsible-content">
-                <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                    <div class="input-group flex-grow">
-                        <label for="publicHolidayDate">Add Public Holiday Date</label>
-                        <div class="flex items-center gap-2">
-                            <input type="date" id="publicHolidayDate" class="shadow-sm flex-grow">
-                            <button type="button" id="setPublicHolidayTodayBtn" class="btn btn-secondary p-2" aria-label="Set public holiday date to today">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <button id="addPublicHolidayDateBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                        Add Holiday
-                    </button>
-                </div>
-                <ul id="publicHolidaysList" class="list-disc list-inside ml-4 text-gray-700"></ul>
-            </div>
-        </div>
-
-        <!-- OT Multiplier Settings -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
-            <div class="collapsible-header" data-target="otMultiplierContent">
-                <h3 class="text-xl font-bold text-gray-800">OT Multiplier Settings</h3>
-                <svg class="collapsible-icon h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </div>
-            <div id="otMultiplierContent" class="collapsible-content">
-                <div id="otMultiplierInputs" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4"></div>
-                <button id="resetMultipliersBtn" class="btn btn-secondary" aria-label="Reset OT multipliers to default">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.118a1 1 0 01-.293.707l-2.118 2.118A1 1 0 012 8v8a2 2 0 002 2h12a2 2 0 002-2V8a1 1 0 01-.293-.707l-2.118-2.118A1 1 0 0115 5.118V3a1 1 0 011-1h-2a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H4zm2 5V4h8v3H6zm-2 4h12V9H4v2zm0 2h12v3H4v-3z" clip-rule="evenodd" /></svg>
-                    Reset to Default Multipliers
-                </button>
-            </div>
-        </div>
-
-        <!-- Daily Overtime Entries -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Daily Overtime Entries</h3>
-            <div class="input-group mb-4">
-                <label for="allocationStrategy">Allocation Strategy
-                    <span class="tooltip-container">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span class="tooltip-content">This is set automatically based on Target OT Pay.</span>
-                    </span>
-                </label>
-                <select id="allocationStrategy" class="shadow-sm" aria-describedby="allocationStrategyDescription">
-                    <option value="Target-Driven">Target-Driven (using Workload Presets)</option>
-                    <option value="Workload-Driven">Workload-Driven (Fill All Days)</option>
-                </select>
-                <p id="allocationStrategyDescription" class="text-sm text-gray-600 mt-2"></p>
-            </div>
-            <div id="targetDrivenStrategyGroup" class="input-group mb-4 hidden">
-                <label for="targetAllocationStrategy">Target-Driven Strategy
-                    <span class="tooltip-container">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span class="tooltip-content">Choose how to meet your OT pay target.</span>
-                    </span>
-                </label>
-                <select id="targetAllocationStrategy" class="shadow-sm" aria-describedby="targetAllocationStrategyDescription">
-                    <option value="Balanced">Balanced (Human-like)</option>
-                    <option value="Fastest Path">Fastest Path (Fewest Hours)</option>
-                    <option value="Cheapest Path">Cheapest Path (Most Hours)</option>
-                </select>
-                <p id="targetAllocationStrategyDescription" class="text-sm text-gray-600 mt-2"></p>
-            </div>
-            <div id="workloadPresetGroup" class="input-group mb-4">
-                <label for="workloadPreset">Workload Preset for Auto Allocation
-                    <span class="tooltip-container">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span class="tooltip-content">Defines min/max hours for different day types.</span>
-                    </span>
-                </label>
-                <select id="workloadPreset" class="shadow-sm" aria-describedby="workloadPresetDescription">
-                    <option value="Moderate Workload">Moderate Workload</option>
-                    <option value="Light Workload">Light Workload</option>
-                    <option value="Heavy Workload">Heavy Workload</option>
-                </select>
-                <p id="workloadPresetDescription" class="text-sm text-gray-600 mt-2"></p>
-            </div>
-            <div id="workloadPresetDetails" class="text-sm text-gray-700 mb-4 p-3 bg-gray-100 rounded-md border border-gray-200"></div>
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <button id="autoAllocateBtn" class="btn btn-secondary flex-grow" aria-label="Auto allocate hours">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 3.293a1 1 0 011.414 0l-2.293 2.293a1 1 0 01-1.414-1.414l2.293-2.293zM9 12a3 3 0 100-6 3 3 0 000 6z"/><path fill-rule="evenodd" d="M15.293 10.293a1 1 0 010 1.414l-2.293 2.293a1 1 0 01-1.414-1.414l2.293-2.293a1 1 0 011.414 0zM4.707 4.707a1 1 0 010 1.414L2.414 8.414a1 1 0 01-1.414-1.414L3.293 4.707a1 1 0 011.414 0zM12 9a3 3 0 10-6 0 3 3 0 006 0z" clip-rule="evenodd" /></svg>
-                    Auto Allocate Hours
-                    <span id="autoAllocateLoading" class="loading-indicator hidden" aria-live="polite">Allocating...</span>
-                </button>
-                <button id="clearAllEntriesBtn" class="btn btn-danger flex-grow" aria-label="Clear all OT entries">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" /></svg>
-                    Clear All Entries
-                </button>
-            </div>
-            <!-- [NEW] Hour Adjustment Buttons -->
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <button id="addHourBtn" class="btn btn-secondary flex-grow" aria-label="Add 0.5 hour">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                    Add 0.5 Hour
-                </button>
-                <button id="reduceHourBtn" class="btn btn-secondary flex-grow" aria-label="Reduce 0.5 hour">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
-                    Reduce 0.5 Hour
-                </button>
-            </div>
-            <div id="calendarContainer" class="calendar-container"></div>
-            <div class="flex flex-col sm:flex-row gap-4 mt-4">
-                <button id="saveDataBtn" class="btn btn-primary flex-grow" aria-label="Save current data">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 00-1 1v1a1 1 0 001 1h6a1 1 0 001-1V4a1 1 0 00-1-1H7z"/><path fill-rule="evenodd" d="M18 8H2a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2v-8a2 2 0 00-2-2zM4 13a1 1 0 011-1h10a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3z" clip-rule="evenodd" /></svg>
-                    Save Data
-                    <span id="saveDataStatus" class="status-message" aria-live="polite"></span>
-                </button>
-                <button id="loadDataBtn" class="btn btn-secondary flex-grow" aria-label="Load saved data">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
-                    Load Data
-                    <span id="loadDataStatus" class="status-message" aria-live="polite"></span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Firebase Toggle -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mt-6 flex items-center justify-between">
-            <label for="firebaseToggle" class="text-xl font-bold text-gray-800 cursor-pointer">Enable Firebase (Save/Load)</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="firebaseToggle">
-                <span class="slider"></span>
-            </label>
-        </div>
-        <p id="firebaseStatusMessage" class="text-sm text-gray-600 mt-2 text-center"></p>
-
-        <button id="resetAndReallocateBtn" class="btn btn-danger w-full mt-4" aria-label="Reset all and re-allocate">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.118a1 1 0 01-.293.707l-2.118 2.118A1 1 0 012 8v8a2 2 0 002 2h12a2 2 0 002-2V8a1 1 0 01-.293-.707l-2.118-2.118A1 1 0 0115 5.118V3a1 1 0 011-1h-2a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H4zm2 5V4h8v3H6zm-2 4h12V9H4v2zm0 2h12v3H4v-3z" clip-rule="evenodd" /></svg>
-            Reset & Re-allocate All
-        </button>
-    </div>
-
-    <!-- Summary Sidebar -->
-    <div class="summary-sidebar">
-        <div id="results" class="results-section">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4">Calculation Summary</h3>
-            <div id="payProgressContainer" class="progress-bar-container hidden">
-                <div class="progress-bar-label"><span>Pay Target Progress</span><span id="payPercentage">0%</span></div>
-                <div class="progress-bar"><div id="payProgressBar" class="progress-bar-fill"></div></div>
-            </div>
-            <div id="hoursProgressContainer" class="progress-bar-container hidden">
-                <div class="progress-bar-label"><span>Hours Progress</span><span id="hoursPercentage">0%</span></div>
-                <div class="progress-bar"><div id="hoursProgressBar" class="progress-bar-fill"></div></div>
-            </div>
-            <p class="text-xl font-bold text-gray-900 mt-6">Combined OT Pay: <span id="combinedOTPay" class="text-indigo-600">RM 0.00</span></p>
-            <p class="text-xl font-bold text-gray-900 mt-2">Target OT Pay: <span id="targetOTPayDisplay" class="text-green-600">RM 0.00</span></p>
-            <p class="text-xl font-bold mt-2">Difference from Target: <span id="differenceFromTarget">RM 0.00</span></p>
-            <p class="text-xl font-bold mt-2">Total Monthly OT Hours: <span id="totalMonthlyOTHoursDisplay">0.0 hours</span></p>
-            <p class="text-xl font-bold mt-2">Total OT Hours Range: <span id="totalOTHoursRangeDisplay">N/A</span></p>
-            <p class="text-xl font-bold text-gray-900 mt-2">Expected Salary Pay: <span id="expectedSalaryPayDisplay" class="text-indigo-600">RM 0.00</span></p>
-            <h4 class="text-lg font-bold text-gray-800 mt-6 mb-2">OT Pay Distribution</h4>
-            <div class="chart-container">
-                <canvas id="otDistributionChart" class="w-full h-full"></canvas>
-                <p id="chartPlaceholder" class="chart-placeholder absolute hidden">No OT data to display. Add entries and calculate!</p>
-            </div>
-            <div class="summary-inline-group mt-6"><strong>Total OT Hours by Type:</strong><span id="totalHoursByType" class="text-gray-700"></span></div>
-            <div class="summary-inline-group"><strong>Total Pay per OT Category:</strong><span id="totalPayByCategory" class="text-gray-700"></span></div>
-            <p class="text-base font-bold text-gray-900 mt-2">Allocation Strategy: <span id="allocationStrategySummary" class="text-gray-700"></span></p>
-            <button id="exportSummaryBtn" class="btn btn-secondary mt-6" aria-label="Export OT summary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                Export Summary
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Modals and Overlays -->
-<div id="messageBox" class="message-box hidden" role="dialog" aria-modal="true" aria-labelledby="messageBoxTitle" aria-describedby="messageBoxContent">
-    <h4 id="messageBoxTitle"></h4>
-    <p id="messageBoxContent"></p>
-    <div class="message-box-buttons">
-        <button id="messageBoxCancelBtn" class="btn btn-cancel hidden">Cancel</button>
-        <button id="messageBoxConfirmBtn" class="hidden">Confirm</button>
-        <button id="messageBoxCloseBtn">OK</button>
-    </div>
-</div>
-
-<div id="addDetailedOTEntryModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailedEntryModalTitle">
-    <div class="manual-entry-modal-content">
-        <h4 id="detailedEntryModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Add/Edit OT Entry</h4>
-        <div class="input-group"><label for="detailedEntryDate">Date</label><input type="date" id="detailedEntryDate" class="shadow-sm" readonly></div>
-        <div class="input-group">
-            <label for="detailedEntryHours">Hours</label>
-            <input type="number" id="detailedEntryHours" value="2.0" min="0" step="0.5" class="shadow-sm">
-            <div id="detailedEntryHoursError" class="error-message text-left"></div>
-        </div>
-        <div class="input-group">
-            <label for="detailedEntryStartTime">Start Time</label>
-            <input type="time" id="detailedEntryStartTime" value="18:00" class="shadow-sm">
-            <div id="detailedEntryStartTimeError" class="error-message text-left"></div>
-        </div>
-        <div class="input-group">
-            <label for="detailedEntryEndTime">End Time (Calculated)</label>
-            <input type="time" id="detailedEntryEndTime" class="shadow-sm" readonly>
-        </div>
-        <div class="modal-buttons">
-            <button id="removeDetailedEntryBtn" class="btn btn-danger hidden">Remove</button>
-            <button id="cancelDetailedEntryBtn" class="btn btn-secondary">Cancel</button>
-            <button id="confirmDetailedEntryBtn" class="btn btn-primary">Save</button>
-        </div>
-    </div>
-</div>
-
-<div id="allocationChoiceModal" class="manual-entry-modal hidden allocation-choice-modal" role="dialog" aria-modal="true" aria-labelledby="allocationChoiceModalTitle">
-    <div class="manual-entry-modal-content">
-        <h4 id="allocationChoiceModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Auto-Allocation Options</h4>
-        <p class="text-gray-700 mb-6">How would you like to allocate overtime hours?</p>
-        <div class="modal-buttons">
-            <button id="clearAndAllocateBtn" class="btn btn-danger">Auto Allocate</button>
-            <button id="fillRemainingBtn" class="btn btn-primary mt-4">Fill Remaining Hours</button>
-            <button id="cancelAllocationChoiceBtn" class="btn btn-secondary mt-4">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- [NEW] Export Choice Modal -->
-<div id="exportChoiceModal" class="manual-entry-modal hidden export-choice-modal" role="dialog" aria-modal="true" aria-labelledby="exportChoiceModalTitle">
-    <div class="manual-entry-modal-content">
-        <h4 id="exportChoiceModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Choose Export Format</h4>
-        <p class="text-gray-700 mb-6">Select how you would like to export your OT summary.</p>
-        <div class="modal-buttons">
-            <button id="exportTxtBtn" class="btn btn-secondary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H5a1 1 0 110-2V4zm3 1a1 1 0 011-1h2a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
-                Text Summary (.txt)
-            </button>
-            <button id="exportCsvBtn" class="btn btn-secondary mt-4">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1a1 1 0 000 2h8a1 1 0 100-2H5zM5 9a1 1 0 000 2h2a1 1 0 100-2H5z" /></svg>
-                CSV File (.csv)
-            </button>
-            <button id="exportHtmlBtn" class="btn btn-secondary mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4V3a2 2 0 012-2h6a2 2 0 012 2v1h-1.5a.5.5 0 000 1H15v2H5V5h1.5a.5.5 0 000-1H5zm9 3H6a1 1 0 00-1 1v6a1 1 0 001 1h8a1 1 0 001-1V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                Printable Report
-            </button>
-            <button id="cancelExportChoiceBtn" class="btn btn-secondary mt-8">Cancel</button>
-        </div>
-    </div>
-</div>
-
-
-<div id="wizardModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="wizardTitle">
-    <div class="manual-entry-modal-content" style="max-width:500px">
-        <h4 id="wizardTitle" class="text-2xl font-bold text-gray-900 mb-2">Quick Setup</h4>
-        <p class="text-gray-600 mb-6">Let's get your calculator configured in a few steps.</p>
-        <div class="wizard-progress">
-            <div class="wizard-progress-dot active" data-step="1"></div>
-            <div class="wizard-progress-dot" data-step="2"></div>
-            <div class="wizard-progress-dot" data-step="3"></div>
-        </div>
-        <div id="wizardStep1" class="wizard-step active">
-            <h5 class="text-xl font-semibold text-gray-800 mb-4">Step 1: Your Salary</h5>
-            <div class="input-group text-left">
-                <label for="wizardBasicSalary">Basic Monthly Salary (RM)</label>
-                <input type="number" id="wizardBasicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm">
-                <div id="wizardSalaryError" class="error-message"></div>
-            </div>
-        </div>
-        <div id="wizardStep2" class="wizard-step">
-            <h5 class="text-xl font-semibold text-gray-800 mb-4">Step 2: Your Goals (Optional)</h5>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                <div class="input-group">
-                    <label for="wizardTargetOTPaySelect">Target OT Pay (RM)</label>
-                    <select id="wizardTargetOTPaySelect" class="shadow-sm mb-2"></select>
-                    <div class="input-with-clear">
-                        <input type="number" id="wizardCustomTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay">
-                        <button type="button" class="clear-input-btn hidden" id="clearWizardCustomTargetOTPayBtn" aria-label="Clear Custom Target OT Pay">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label for="wizardMinHours">Min Total Hours</label>
-                    <input type="number" id="wizardMinHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 140">
-                </div>
-            </div>
-            <div class="input-group text-left mt-4">
-                <label for="wizardMaxHours">Max Total Hours</label>
-                <input type="number" id="wizardMaxHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 150">
-                <div id="wizardHoursError" class="error-message"></div>
-            </div>
-        </div>
-        <div id="wizardStep3" class="wizard-step">
-            <h5 class="text-xl font-semibold text-gray-800 mb-4">Step 3: Planning Period</h5>
-            <div class="input-group">
-                <label for="wizardDateRange">Select Date Range</label>
-                <input id="wizardDateRange" class="shadow-sm" placeholder="Click to select date range" readonly>
-                <div id="wizardDateError" class="error-message text-left"></div>
-            </div>
-        </div>
-        <div class="modal-buttons mt-8">
-            <button id="wizardPrevBtn" class="btn btn-secondary hidden">Previous</button>
-            <button id="wizardNextBtn" class="btn btn-primary">Next</button>
-            <button id="wizardFinishBtn" class="btn btn-primary hidden">Finish</button>
-        </div>
-    </div>
-</div>
-
-<div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-[3000] hidden">
-    <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16"></div>
-</div>
-
-<div id="toastContainer"></div>
-
-<script type="module">
-    // Firebase Imports
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Enhanced OT Calculator</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"><script src="https://cdn.jsdelivr.net/npm/flatpickr"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><style>:root{--primary-indigo:#6366f1;--dark-indigo:#4f46e5;--light-indigo:#e0e7ff;--lightest-indigo:#c7d2fe;--danger-red:#ef4444;--dark-red:#dc2626;--success-green:#10b981;--info-blue:#3b82f6;--warning-orange:#f59e0b;--gray-900:#1f2937;--gray-800:#374151;--gray-700:#4b5563;--gray-600:#6b7280;--gray-500:#9ca3af;--gray-400:#d1d5db;--gray-300:#e5e7eb;--gray-200:#f3f4f6;--gray-100:#f9fafb;--gray-50:#f9fafb}body{font-family:Inter,sans-serif;background-color:var(--gray-200);display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px;box-sizing:border-box}.main-wrapper{display:flex;flex-direction:column;gap:25px;max-width:1200px;width:100%}@media (min-width:1024px){.main-wrapper{flex-direction:row;align-items:flex-start}}.form-content{background-color:#fff;padding:30px;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,.1);flex-grow:1;width:100%}@media (min-width:1024px){.form-content{min-width:600px}}.summary-sidebar{background-color:#fff;padding:25px;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,.1);position:sticky;top:20px;align-self:flex-start;width:100%;min-width:300px;flex-shrink:0}@media (min-width:1024px){.summary-sidebar{width:350px}}.input-group label{font-weight:600;color:var(--gray-800);margin-bottom:8px;display:block}.input-group input,.input-group select{width:100%;padding:12px;border:1px solid var(--gray-400);border-radius:8px;font-size:1rem;color:var(--gray-700);transition:border-color .2s ease-in-out,box-shadow .2s ease-in-out}.input-group input:focus,.input-group select:focus{outline:0;border-color:var(--primary-indigo);box-shadow:0 0 0 3px rgba(99,102,241,.2)}.input-group select:disabled{background-color:var(--gray-200);cursor:not-allowed}.btn{padding:12px 20px;border-radius:8px;font-weight:600;cursor:pointer;transition:background-color .2s ease-in-out,transform .1s ease-in-out;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn-primary{background-color:var(--primary-indigo);color:#fff}.btn-primary:hover{background-color:var(--dark-indigo);transform:translateY(-1px)}.btn-secondary{background-color:var(--light-indigo);color:var(--dark-indigo)}.btn-secondary:hover{background-color:var(--lightest-indigo);transform:translateY(-1px)}.btn-danger{background-color:var(--danger-red);color:#fff}.btn-danger:hover{background-color:var(--dark-red);transform:translateY(-1px)}.results-section h3{font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:15px}.results-section p{font-size:1.1rem;margin-bottom:8px;color:var(--gray-800)}.results-section p strong{color:var(--gray-900)}.message-box{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background-color:#fff;padding:30px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.2);z-index:1000;text-align:center;min-width:300px;max-width:90%;border:1px solid var(--gray-400);opacity:0;transform:translate(-50%,-50%) scale(.9);transition:opacity .3s ease-out,transform .3s ease-out}.message-box.show{opacity:1;transform:translate(-50%,-50%) scale(1)}.message-box h4{font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:15px}.message-box p{font-size:1.1rem;color:var(--gray-700);margin-bottom:25px}.message-box-buttons{display:flex;justify-content:center;gap:15px}.message-box button{background-color:var(--primary-indigo);color:#fff;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer;transition:background-color .2s ease-in-out}.message-box button:hover{background-color:var(--dark-indigo)}.message-box .btn-cancel{background-color:var(--gray-300);color:var(--gray-700)}.message-box .btn-cancel:hover{background-color:var(--gray-400)}.manual-entry-modal{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:center;z-index:1000;opacity:0;transition:opacity .3s ease-out}.manual-entry-modal.show{opacity:1}.manual-entry-modal-content{background-color:#fff;padding:30px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.2);text-align:center;min-width:350px;max-width:90%;border:1px solid var(--gray-400);transform:scale(.9);transition:transform .3s ease-out}.manual-entry-modal.show .manual-entry-modal-content{transform:scale(1)}.manual-entry-modal-content h4{font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:15px}.manual-entry-modal-content .input-group{margin-bottom:20px}.manual-entry-modal-content .modal-buttons{display:flex;justify-content:center;gap:15px}.export-choice-modal .modal-buttons{flex-direction:column}.export-choice-modal .modal-buttons button{width:100%}@media (max-width:768px){.form-content,.summary-sidebar{padding:20px}}.loading-indicator{margin-left:10px;font-size:.9em;color:var(--primary-indigo);font-weight:500}#userIdDisplay{font-size:.8em;color:var(--gray-600);text-align:right;margin-top:-15px;margin-bottom:15px;word-break:break-all}.summary-inline-group{display:flex;flex-wrap:wrap;gap:10px;font-size:1rem;color:var(--gray-800);margin-bottom:8px}.summary-inline-group strong{display:block;width:100%;margin-bottom:4px}.summary-inline-item{display:inline-block;padding:4px 8px;background-color:var(--light-indigo);border-radius:6px;color:var(--dark-indigo);font-weight:500}.collapsible-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 0;border-bottom:1px solid #cbd5e0;margin-bottom:15px}.collapsible-header h3{margin-bottom:0}.collapsible-content{overflow:hidden;transition:max-height .3s ease-out}.collapsible-content.collapsed{max-height:0!important}.collapsible-icon{transition:transform .3s ease-out}.collapsible-icon.rotated{transform:rotate(90deg)}.input-error{border-color:var(--danger-red);box-shadow:0 0 0 3px rgba(239,68,68,.2)}.error-message{color:var(--danger-red);font-size:.85rem;margin-top:4px}.status-message{margin-left:10px;font-size:.9em;font-weight:500;opacity:0;transition:opacity .3s ease-in-out}.status-message.show{opacity:1}.status-message.loading{color:var(--primary-indigo)}.status-message.success{color:var(--success-green)}.status-message.error{color:var(--danger-red)}.input-with-clear{position:relative;display:flex;align-items:center}.input-with-clear input{padding-right:36px}.clear-input-btn{position:absolute;right:8px;background:0 0;border:none;cursor:pointer;color:var(--gray-500);padding:4px;border-radius:50%;transition:background-color .2s ease-in-out,color .2s ease-in-out;display:flex;align-items:center;justify-content:center}.clear-input-btn:hover{background-color:var(--gray-300);color:var(--gray-700)}.allocation-choice-modal .modal-buttons button{width:100%}.allocation-choice-modal .modal-buttons{flex-direction:column}.toggle-switch{position:relative;display:inline-block;width:60px;height:34px}.toggle-switch input{opacity:0;width:0;height:0}.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#ccc;-webkit-transition:.4s;transition:.4s;border-radius:34px}.slider:before{position:absolute;content:"";height:26px;width:26px;left:4px;bottom:4px;background-color:#fff;-webkit-transition:.4s;transition:.4s;border-radius:50%}input:checked+.slider{background-color:var(--primary-indigo)}input:focus+.slider{box-shadow:0 0 1px var(--primary-indigo)}input:checked+.slider:before{-webkit-transform:translateX(26px);-ms-transform:translateX(26px);transform:translateX(26px)}#toastContainer{position:fixed;bottom:1rem;right:1rem;z-index:2000;display:flex;flex-direction:column;gap:.5rem;max-width:300px}.toast{background-color:#333;color:#fff;padding:.75rem 1rem;border-radius:.5rem;box-shadow:0 4px 12px rgba(0,0,0,.2);opacity:0;transform:translateY(20px);transition:opacity .3s ease-out,transform .3s ease-out}.toast.show{opacity:1;transform:translateY(0)}.toast.info{background-color:var(--info-blue)}.toast.success{background-color:var(--success-green)}.toast.error{background-color:var(--danger-red)}.toast.warning{background-color:var(--warning-orange)}#loadingOverlay{transition:opacity .3s ease-in-out}.loader{border-top-color:var(--primary-indigo);animation:spin 1s linear infinite}@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}.tooltip-container{position:relative;display:inline-flex;align-items:center;margin-left:.5rem;cursor:help}.tooltip-content{position:absolute;bottom:100%;left:50%;transform:translateX(-50%) translateY(-.5rem);background-color:#333;color:#fff;padding:.5rem .75rem;border-radius:.375rem;font-size:.875rem;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s ease-out,transform .2s ease-out;z-index:10}.tooltip-container:hover .tooltip-content{opacity:1;transform:translateX(-50%) translateY(-1rem)}.chart-container{position:relative;width:100%;height:256px;display:flex;align-items:center;justify-content:center;background-color:var(--gray-50);border-radius:8px;overflow:hidden}.chart-placeholder{color:var(--gray-500);font-style:italic;text-align:center;padding:1rem}.progress-bar-container{margin-top:1.5rem}.progress-bar-label{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;font-weight:500;color:var(--gray-700);margin-bottom:.5rem}.progress-bar{width:100%;height:12px;background-color:var(--gray-200);border-radius:9999px;overflow:hidden}.progress-bar-fill{height:100%;width:0;border-radius:9999px;transition:width .5s ease-out,background-color .5s ease-out}.calendar-container{margin-top:1rem}.calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}.calendar-header h4{font-size:1.25rem;font-weight:700;color:var(--gray-800)}.calendar-nav button{background:0 0;border:none;cursor:pointer;padding:.5rem;border-radius:50%;transition:background-color .2s}.calendar-nav button:hover{background-color:var(--gray-200)}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.calendar-day-name{text-align:center;font-size:.8rem;font-weight:600;color:var(--gray-500);padding-bottom:.5rem}.calendar-day{position:relative;text-align:center;padding:.5rem 0;border-radius:8px;cursor:pointer;transition:background-color .2s,border-color .2s;border:2px solid transparent}.calendar-day:not(.disabled):hover{background-color:var(--light-indigo)}.calendar-day.today{border-color:var(--primary-indigo)}.calendar-day.has-ot{background-color:var(--primary-indigo);color:#fff;font-weight:600}.calendar-day.has-ot:hover{background-color:var(--dark-indigo)}.calendar-day.disabled{color:var(--gray-400);cursor:not-allowed}.calendar-day .ot-hours{position:absolute;bottom:2px;right:4px;font-size:.7rem;font-weight:700;opacity:.8}.wizard-step{display:none}.wizard-step.active{display:block}.wizard-progress{display:flex;justify-content:center;gap:.5rem;margin-bottom:1.5rem}.wizard-progress-dot{width:12px;height:12px;border-radius:50%;background-color:var(--gray-300);transition:background-color .3s}.wizard-progress-dot.active{background-color:var(--primary-indigo)}</style></head><body><div class="main-wrapper"><div class="form-content"><div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-extrabold text-gray-900">Enhanced OT Calculator</h2><button id="quickSetupBtn" class="btn btn-secondary" aria-label="Open Quick Setup"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L8 7.48l-4.73.34c-1.61.12-2.27 2.23-1.09 3.33l3.64 3.28-1.11 4.86c-.33 1.45 1.25 2.58 2.6 1.86L10 17.6l4.7 2.87c1.35.72 2.93-.41 2.6-1.86l-1.11-4.86 3.64-3.28c1.18-1.1.52-3.21-1.09-3.33L12 7.48l-.51-4.31z" clip-rule="evenodd"/></svg>Quick Setup</button></div><div id="userIdDisplay" class="hidden"></div><div class="bg-blue-50 p-6 rounded-xl border border-blue-200 mb-6"><div class="collapsible-header" data-target="howToUseContent"><h3 class="text-xl font-bold text-blue-800">How to Use This Calculator</h3><svg class="collapsible-icon h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div><div id="howToUseContent" class="collapsible-content"><ul class="list-disc list-inside text-gray-700 space-y-2"><li><strong>1. Employee Settings:</strong>Enter your basic monthly salary. Optionally, set a target OT pay and/or min/max total hours.</li><li><strong>2. OT Planning Date Range:</strong>Define the period for which you want to calculate or plan your overtime.</li><li><strong>3. Public Holiday Management:</strong>Add any public holidays within your planning range.</li><li><strong>4. OT Multiplier Settings:</strong>Adjust the overtime rates. Note: Rest Day (Sunday) pay is now automatically split for the first 8 hours and after.</li><li><strong>5. Daily Overtime Entries:</strong><ul class="list-circle list-inside ml-4 mt-1 space-y-1"><li>Use the<strong>Interactive Calendar</strong>to manage your schedule. Click on a day to add or edit OT hours.</li><li><strong>Allocation Strategy:</strong>Choose how hours are allocated.<ul><li><strong>Target-Driven:</strong>Automatically selected when you have a "Target OT Pay". This now treats your target as a<strong>minimum</strong>. Choose a sub-strategy:<ul class="list-square list-inside ml-4"><li><strong>Balanced:</strong>Uses a human-like, randomized approach to meet your target.</li><li><strong>Fastest Path:</strong>Prioritizes high-pay days to meet your target with fewer hours.</li><li><strong>Cheapest Path:</strong>Prioritizes low-pay days to maximize hours for a given target.</li></ul></li><li><strong>Workload-Driven:</strong>Automatically selected when you have no target. Allocates hours based on a "Workload Preset".</li></ul></li><li>The logic now ensures your<strong>Min Total OT Hours</strong>target is met if possible, after the pay target is secured.</li><li>Click "Auto Allocate Hours" to generate entries based on your chosen strategy.</li></ul></li></ul></div></div><div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6"><h3 class="text-xl font-bold text-gray-800 mb-4">Employee Settings</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-5"><div class="input-group"><label for="basicSalary">Basic Monthly Salary (RM)</label><div class="input-with-clear"><input type="number" id="basicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm"><button type="button" class="clear-input-btn" aria-label="Clear Basic Monthly Salary"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div></div><div class="input-group"><label for="targetOTPaySelect">Target OT Pay (RM) (Optional)</label><select id="targetOTPaySelect" class="shadow-sm mb-2"><option value="">No Target</option><option value="custom">Other (Enter Manually)</option></select><div class="input-with-clear"><input type="number" id="customTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay"><button type="button" class="clear-input-btn hidden" id="clearCustomTargetOTPayBtn" aria-label="Clear Custom Target OT Pay"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div id="suggestedHoursContainer" class="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded-md hidden"><p>💡 Suggested hours to reach target:<strong id="suggestedHoursDisplay"></strong></p></div></div><div class="input-group"><label for="minTotalOTHours">Min Total OT Hours (Optional)<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="tooltip-content">The minimum total OT hours to aim for.</span></span></label><div class="input-with-clear"><input type="number" id="minTotalOTHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 140"><button type="button" class="clear-input-btn" id="clearMinTotalOTHoursBtn" aria-label="Clear Min Total OT Hours"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div id="minMaxHoursError" class="error-message"></div></div><div class="input-group"><label for="maxTotalOTHours">Max Total OT Hours (Optional)<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="tooltip-content">The maximum total OT hours not to exceed.</span></span></label><div class="input-with-clear"><input type="number" id="maxTotalOTHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 150"><button type="button" class="clear-input-btn" id="clearMaxTotalOTHoursBtn" aria-label="Clear Max Total OT Hours"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div></div></div><div class="mt-6"><label class="block text-xl font-bold text-gray-800 mb-3">Auto-Allocate to:</label><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><div class="flex items-center"><input type="checkbox" id="allocateWorkingDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked="checked"><label for="allocateWorkingDay" class="ml-2 text-gray-700 font-medium">Working Day</label></div><div class="flex items-center"><input type="checkbox" id="allocateOffDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked="checked"><label for="allocateOffDay" class="ml-2 text-gray-700 font-medium">Off Day</label></div><div class="flex items-center"><input type="checkbox" id="allocateRestDay" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked="checked"><label for="allocateRestDay" class="ml-2 text-gray-700 font-medium">Rest Day</label></div><div class="flex items-center"><input type="checkbox" id="allocatePublicHoliday" class="h-5 w-5 text-primary-indigo rounded border-gray-300 focus:ring-primary-indigo" checked="checked"><label for="allocatePublicHoliday" class="ml-2 text-gray-700 font-medium">Public Holiday</label></div></div></div><p class="text-sm text-gray-600 mt-4">Working Schedule: 5 days/week, Saturday: Off Day, Sunday: Rest Day. For payroll, employer uses 26 working days monthly.</p></div><div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6"><h3 class="text-xl font-bold text-gray-800 mb-4">OT Planning Date Range</h3><div class="input-group"><label for="dateRangeInput">Select Date Range</label><div class="flex items-center gap-2"><input id="dateRangeInput" class="shadow-sm flex-grow" placeholder="Click to select date range" readonly="readonly"><button type="button" id="setThisMonthBtn" class="btn btn-secondary p-2" aria-label="Set date range to this month">This Month</button></div><div id="dateRangeError" class="error-message"></div></div></div><div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6"><div class="collapsible-header" data-target="publicHolidaysContent"><h3 class="text-xl font-bold text-gray-800">Public Holiday Management</h3><svg class="collapsible-icon h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div><div id="publicHolidaysContent" class="collapsible-content"><div class="flex flex-col sm:flex-row gap-4 mb-4"><div class="input-group flex-grow"><label for="publicHolidayDate">Add Public Holiday Date</label><div class="flex items-center gap-2"><input type="date" id="publicHolidayDate" class="shadow-sm flex-grow"><button type="button" id="setPublicHolidayTodayBtn" class="btn btn-secondary p-2" aria-label="Set public holiday date to today"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg></button></div></div><button id="addPublicHolidayDateBtn" class="btn btn-secondary mt-auto" aria-label="Add public holiday"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/></svg>Add Holiday</button></div><ul id="publicHolidaysList" class="list-disc list-inside ml-4 text-gray-700"></ul></div></div><div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6"><div class="collapsible-header" data-target="otMultiplierContent"><h3 class="text-xl font-bold text-gray-800">OT Multiplier Settings</h3><svg class="collapsible-icon h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div><div id="otMultiplierContent" class="collapsible-content"><div id="otMultiplierInputs" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4"></div><button id="resetMultipliersBtn" class="btn btn-secondary" aria-label="Reset OT multipliers to default"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.118a1 1 0 01-.293.707l-2.118 2.118A1 1 0 012 8v8a2 2 0 002 2h12a2 2 0 002-2V8a1 1 0 01-.293-.707l-2.118-2.118A1 1 0 0115 5.118V3a1 1 0 011-1h-2a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H4zm2 5V4h8v3H6zm-2 4h12V9H4v2zm0 2h12v3H4v-3z" clip-rule="evenodd"/></svg>Reset to Default Multipliers</button></div></div><div class="bg-gray-50 p-6 rounded-xl border border-gray-200"><h3 class="text-xl font-bold text-gray-800 mb-4">Daily Overtime Entries</h3><div class="input-group mb-4"><label for="allocationStrategy">Allocation Strategy<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="tooltip-content">This is set automatically based on Target OT Pay.</span></span></label><select id="allocationStrategy" class="shadow-sm" aria-describedby="allocationStrategyDescription"><option value="Target-Driven">Target-Driven (using Workload Presets)</option><option value="Workload-Driven">Workload-Driven (Fill All Days)</option></select><p id="allocationStrategyDescription" class="text-sm text-gray-600 mt-2"></p></div><div id="targetDrivenStrategyGroup" class="input-group mb-4 hidden"><label for="targetAllocationStrategy">Target-Driven Strategy<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="tooltip-content">Choose how to meet your OT pay target.</span></span></label><select id="targetAllocationStrategy" class="shadow-sm" aria-describedby="targetAllocationStrategyDescription"><option value="Balanced">Balanced (Human-like)</option><option value="Fastest Path">Fastest Path (Fewest Hours)</option><option value="Cheapest Path">Cheapest Path (Most Hours)</option></select><p id="targetAllocationStrategyDescription" class="text-sm text-gray-600 mt-2"></p></div><div id="workloadPresetGroup" class="input-group mb-4"><label for="workloadPreset">Workload Preset for Auto Allocation<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="tooltip-content">Defines min/max hours for different day types.</span></span></label><select id="workloadPreset" class="shadow-sm" aria-describedby="workloadPresetDescription"><option value="Moderate Workload">Moderate Workload</option><option value="Light Workload">Light Workload</option><option value="Heavy Workload">Heavy Workload</option></select><p id="workloadPresetDescription" class="text-sm text-gray-600 mt-2"></p></div><div id="workloadPresetDetails" class="text-sm text-gray-700 mb-4 p-3 bg-gray-100 rounded-md border border-gray-200"></div><div class="flex flex-col sm:flex-row gap-4 mb-4"><button id="autoAllocateBtn" class="btn btn-secondary flex-grow" aria-label="Auto allocate hours"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 3.293a1 1 0 011.414 0l-2.293 2.293a1 1 0 01-1.414-1.414l2.293-2.293zM9 12a3 3 0 100-6 3 3 0 000 6z"/><path fill-rule="evenodd" d="M15.293 10.293a1 1 0 010 1.414l-2.293 2.293a1 1 0 01-1.414-1.414l2.293-2.293a1 1 0 011.414 0zM4.707 4.707a1 1 0 010 1.414L2.414 8.414a1 1 0 01-1.414-1.414L3.293 4.707a1 1 0 011.414 0zM12 9a3 3 0 10-6 0 3 3 0 006 0z" clip-rule="evenodd"/></svg>Auto Allocate Hours<span id="autoAllocateLoading" class="loading-indicator hidden" aria-live="polite">Allocating...</span></button><button id="clearAllEntriesBtn" class="btn btn-danger flex-grow" aria-label="Clear all OT entries"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd"/></svg>Clear All Entries</button></div><div class="flex flex-col sm:flex-row gap-4 mb-4"><button id="addHourBtn" class="btn btn-secondary flex-grow" aria-label="Add 0.5 hour"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/></svg>Add 0.5 Hour</button><button id="reduceHourBtn" class="btn btn-secondary flex-grow" aria-label="Reduce 0.5 hour"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>Reduce 0.5 Hour</button></div><div id="calendarContainer" class="calendar-container"></div><div class="flex flex-col sm:flex-row gap-4 mt-4"><button id="saveDataBtn" class="btn btn-primary flex-grow" aria-label="Save current data"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 00-1 1v1a1 1 0 001 1h6a1 1 0 001-1V4a1 1 0 00-1-1H7z"/><path fill-rule="evenodd" d="M18 8H2a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2v-8a2 2 0 00-2-2zM4 13a1 1 0 011-1h10a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3z" clip-rule="evenodd"/></svg>Save Data<span id="saveDataStatus" class="status-message" aria-live="polite"></span></button><button id="loadDataBtn" class="btn btn-secondary flex-grow" aria-label="Load saved data"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>Load Data<span id="loadDataStatus" class="status-message" aria-live="polite"></span></button></div></div><div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mt-6 flex items-center justify-between"><label for="firebaseToggle" class="text-xl font-bold text-gray-800 cursor-pointer">Enable Firebase (Save/Load)</label><label class="toggle-switch"><input type="checkbox" id="firebaseToggle"><span class="slider"></span></label></div><p id="firebaseStatusMessage" class="text-sm text-gray-600 mt-2 text-center"></p><button id="resetAndReallocateBtn" class="btn btn-danger w-full mt-4" aria-label="Reset all and re-allocate"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.118a1 1 0 01-.293.707l-2.118 2.118A1 1 0 012 8v8a2 2 0 002 2h12a2 2 0 002-2V8a1 1 0 01-.293-.707l-2.118-2.118A1 1 0 0115 5.118V3a1 1 0 011-1h-2a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1V1a1 1 0 10-2 0v1a1 1 0 01-1 1H4zm2 5V4h8v3H6zm-2 4h12V9H4v2zm0 2h12v3H4v-3z" clip-rule="evenodd"/></svg>Reset & Re-allocate All</button></div><div class="summary-sidebar"><div id="results" class="results-section"><h3 class="text-2xl font-bold text-gray-900 mb-4">Calculation Summary</h3><div id="payProgressContainer" class="progress-bar-container hidden"><div class="progress-bar-label"><span>Pay Target Progress</span><span id="payPercentage">0%</span></div><div class="progress-bar"><div id="payProgressBar" class="progress-bar-fill"></div></div></div><div id="hoursProgressContainer" class="progress-bar-container hidden"><div class="progress-bar-label"><span>Hours Progress</span><span id="hoursPercentage">0%</span></div><div class="progress-bar"><div id="hoursProgressBar" class="progress-bar-fill"></div></div></div><p class="text-xl font-bold text-gray-900 mt-6">Combined OT Pay:<span id="combinedOTPay" class="text-indigo-600">RM 0.00</span></p><p class="text-xl font-bold text-gray-900 mt-2">Target OT Pay:<span id="targetOTPayDisplay" class="text-green-600">RM 0.00</span></p><p class="text-xl font-bold mt-2">Difference from Target:<span id="differenceFromTarget">RM 0.00</span></p><p class="text-xl font-bold mt-2">Total Monthly OT Hours:<span id="totalMonthlyOTHoursDisplay">0.0 hours</span></p><p class="text-xl font-bold mt-2">Total OT Hours Range:<span id="totalOTHoursRangeDisplay">N/A</span></p><p class="text-xl font-bold text-gray-900 mt-2">Expected Salary Pay:<span id="expectedSalaryPayDisplay" class="text-indigo-600">RM 0.00</span></p><h4 class="text-lg font-bold text-gray-800 mt-6 mb-2">OT Pay Distribution</h4><div class="chart-container"><canvas id="otDistributionChart" class="w-full h-full"></canvas><p id="chartPlaceholder" class="chart-placeholder absolute hidden">No OT data to display. Add entries and calculate!</p></div><div class="summary-inline-group mt-6"><strong>Total OT Hours by Type:</strong><span id="totalHoursByType" class="text-gray-700"></span></div><div class="summary-inline-group"><strong>Total Pay per OT Category:</strong><span id="totalPayByCategory" class="text-gray-700"></span></div><p class="text-base font-bold text-gray-900 mt-2">Allocation Strategy:<span id="allocationStrategySummary" class="text-gray-700"></span></p><button id="exportSummaryBtn" class="btn btn-secondary mt-6" aria-label="Export OT summary"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Export Summary</button></div></div></div><div id="messageBox" class="message-box hidden" role="dialog" aria-modal="true" aria-labelledby="messageBoxTitle" aria-describedby="messageBoxContent"><h4 id="messageBoxTitle"></h4><p id="messageBoxContent"></p><div class="message-box-buttons"><button id="messageBoxCancelBtn" class="btn btn-cancel hidden">Cancel</button><button id="messageBoxConfirmBtn" class="hidden">Confirm</button><button id="messageBoxCloseBtn">OK</button></div></div><div id="addDetailedOTEntryModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailedEntryModalTitle"><div class="manual-entry-modal-content"><h4 id="detailedEntryModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Add/Edit OT Entry</h4><div class="input-group"><label for="detailedEntryDate">Date</label><input type="date" id="detailedEntryDate" class="shadow-sm" readonly="readonly"></div><div class="input-group"><label for="detailedEntryHours">Hours</label><input type="number" id="detailedEntryHours" value="2.0" min="0" step="0.5" class="shadow-sm"><div id="detailedEntryHoursError" class="error-message text-left"></div></div><div class="input-group"><label for="detailedEntryStartTime">Start Time</label><input type="time" id="detailedEntryStartTime" value="18:00" class="shadow-sm"><div id="detailedEntryStartTimeError" class="error-message text-left"></div></div><div class="input-group"><label for="detailedEntryEndTime">End Time (Calculated)</label><input type="time" id="detailedEntryEndTime" class="shadow-sm" readonly="readonly"></div><div class="modal-buttons"><button id="removeDetailedEntryBtn" class="btn btn-danger hidden">Remove</button><button id="cancelDetailedEntryBtn" class="btn btn-secondary">Cancel</button><button id="confirmDetailedEntryBtn" class="btn btn-primary">Save</button></div></div></div><div id="allocationChoiceModal" class="manual-entry-modal hidden allocation-choice-modal" role="dialog" aria-modal="true" aria-labelledby="allocationChoiceModalTitle"><div class="manual-entry-modal-content"><h4 id="allocationChoiceModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Auto-Allocation Options</h4><p class="text-gray-700 mb-6">How would you like to allocate overtime hours?</p><div class="modal-buttons"><button id="clearAndAllocateBtn" class="btn btn-danger">Auto Allocate</button><button id="fillRemainingBtn" class="btn btn-primary mt-4">Fill Remaining Hours</button><button id="cancelAllocationChoiceBtn" class="btn btn-secondary mt-4">Cancel</button></div></div></div><div id="exportChoiceModal" class="manual-entry-modal hidden export-choice-modal" role="dialog" aria-modal="true" aria-labelledby="exportChoiceModalTitle"><div class="manual-entry-modal-content"><h4 id="exportChoiceModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Choose Export Format</h4><p class="text-gray-700 mb-6">Select how you would like to export your OT summary.</p><div class="modal-buttons"><button id="exportTxtBtn" class="btn btn-secondary"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H5a1 1 0 110-2V4zm3 1a1 1 0 011-1h2a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>Text Summary (.txt)</button><button id="exportCsvBtn" class="btn btn-secondary mt-4"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1a1 1 0 000 2h8a1 1 0 100-2H5zM5 9a1 1 0 000 2h2a1 1 0 100-2H5z"/></svg>CSV File (.csv)</button><button id="exportHtmlBtn" class="btn btn-secondary mt-4"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4V3a2 2 0 012-2h6a2 2 0 012 2v1h-1.5a.5.5 0 000 1H15v2H5V5h1.5a.5.5 0 000-1H5zm9 3H6a1 1 0 00-1 1v6a1 1 0 001 1h8a1 1 0 001-1V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>Printable Report</button><button id="cancelExportChoiceBtn" class="btn btn-secondary mt-8">Cancel</button></div></div></div><div id="wizardModal" class="manual-entry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="wizardTitle"><div class="manual-entry-modal-content" style="max-width:500px"><h4 id="wizardTitle" class="text-2xl font-bold text-gray-900 mb-2">Quick Setup</h4><p class="text-gray-600 mb-6">Let's get your calculator configured in a few steps.</p><div class="wizard-progress"><div class="wizard-progress-dot active" data-step="1"></div><div class="wizard-progress-dot" data-step="2"></div><div class="wizard-progress-dot" data-step="3"></div></div><div id="wizardStep1" class="wizard-step active"><h5 class="text-xl font-semibold text-gray-800 mb-4">Step 1: Your Salary</h5><div class="input-group text-left"><label for="wizardBasicSalary">Basic Monthly Salary (RM)</label><input type="number" id="wizardBasicSalary" value="3700.00" min="0" step="0.01" class="shadow-sm"><div id="wizardSalaryError" class="error-message"></div></div></div><div id="wizardStep2" class="wizard-step"><h5 class="text-xl font-semibold text-gray-800 mb-4">Step 2: Your Goals (Optional)</h5><div class="input-group text-left mb-4"><label for="wizardTargetOTPaySelect">Target OT Pay (RM)</label><select id="wizardTargetOTPaySelect" class="shadow-sm mb-2"></select><div class="input-with-clear"><input type="number" id="wizardCustomTargetOTPayInput" class="shadow-sm hidden" placeholder="Enter custom target pay"><button type="button" class="clear-input-btn hidden" id="clearWizardCustomTargetOTPayBtn" aria-label="Clear Custom Target OT Pay"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div id="wizardSuggestedHoursContainer" class="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded-md hidden"><p>💡 Suggested:<strong id="wizardSuggestedHoursDisplay"></strong></p></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left"><div class="input-group"><label for="wizardMinHours">Min Total Hours</label><input type="number" id="wizardMinHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 140"></div><div class="input-group"><label for="wizardMaxHours">Max Total Hours</label><input type="number" id="wizardMaxHours" min="0" step="0.5" class="shadow-sm" placeholder="e.g., 150"></div></div><div id="wizardHoursError" class="error-message text-left mt-2"></div></div><div id="wizardStep3" class="wizard-step"><h5 class="text-xl font-semibold text-gray-800 mb-4">Step 3: Planning Period</h5><div class="input-group"><label for="wizardDateRange">Select Date Range</label><input id="wizardDateRange" class="shadow-sm" placeholder="Click to select date range" readonly="readonly"><div id="wizardDateError" class="error-message text-left"></div></div></div><div class="modal-buttons mt-8"><button id="wizardPrevBtn" class="btn btn-secondary hidden">Previous</button><button id="wizardNextBtn" class="btn btn-primary">Next</button><button id="wizardFinishBtn" class="btn btn-primary hidden">Finish</button></div></div></div><div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-[3000] hidden"><div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16"></div></div><div id="toastContainer"></div><script type="module">// Firebase Imports
     import { initializeApp as initializeFirebaseApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -632,6 +61,8 @@
         targetOTPaySelect: document.getElementById('targetOTPaySelect'),
         customTargetOTPayInput: document.getElementById('customTargetOTPayInput'),
         clearCustomTargetOTPayBtn: document.getElementById('clearCustomTargetOTPayBtn'),
+        suggestedHoursContainer: document.getElementById('suggestedHoursContainer'),
+        suggestedHoursDisplay: document.getElementById('suggestedHoursDisplay'),
         minTotalOTHoursInput: document.getElementById('minTotalOTHours'),
         clearMinTotalOTHoursBtn: document.getElementById('clearMinTotalOTHoursBtn'),
         maxTotalOTHoursInput: document.getElementById('maxTotalOTHours'),
@@ -747,6 +178,8 @@
             targetOTPaySelect: document.getElementById('wizardTargetOTPaySelect'),
             customTargetOTPayInput: document.getElementById('wizardCustomTargetOTPayInput'),
             clearCustomTargetOTPayBtn: document.getElementById('clearWizardCustomTargetOTPayBtn'),
+            suggestedHoursContainer: document.getElementById('wizardSuggestedHoursContainer'),
+            suggestedHoursDisplay: document.getElementById('wizardSuggestedHoursDisplay'),
             minHoursInput: document.getElementById('wizardMinHours'),
             maxHoursInput: document.getElementById('wizardMaxHours'),
             hoursError: document.getElementById('wizardHoursError'),
@@ -1374,7 +807,7 @@
     }
 
     /** Update the UI based on the main allocation strategy (Target vs Workload). */
-    function updateAllocationStrategyUI() {
+    async function updateAllocationStrategyUI() {
         const targetPay = getTargetOTPay();
         const isTargetDriven = targetPay !== null && targetPay > 0;
         
@@ -1388,11 +821,26 @@
             DOMElements.workloadPresetGroup.classList.add('hidden');
             DOMElements.workloadPresetDetails.classList.add('hidden');
             updateTargetSubStrategyUI();
+            
+            // [NEW] Calculate and display suggested hours
+            const suggestion = await calculateSuggestedHoursForTarget();
+            if (suggestion) {
+                if (suggestion.minHours !== null && suggestion.maxHours !== null) {
+                    DOMElements.suggestedHoursDisplay.textContent = `${suggestion.minHours.toFixed(1)}h (min) - ${suggestion.maxHours.toFixed(1)}h (max)`;
+                } else {
+                    DOMElements.suggestedHoursDisplay.textContent = 'Target is likely unreachable.';
+                }
+                DOMElements.suggestedHoursContainer.classList.remove('hidden');
+            } else {
+                DOMElements.suggestedHoursContainer.classList.add('hidden');
+            }
+
         } else {
             DOMElements.allocationStrategyDescription.textContent = 'Hours will be allocated for all days in your range according to the "Workload Preset".';
             DOMElements.targetDrivenStrategyGroup.classList.add('hidden');
             DOMElements.workloadPresetGroup.classList.remove('hidden');
             DOMElements.workloadPresetDetails.classList.remove('hidden');
+            DOMElements.suggestedHoursContainer.classList.add('hidden');
         }
         updateAllCalculations();
     }
@@ -1537,36 +985,38 @@
 
     /** [ENHANCEMENT] Checks if the user's goals are theoretically possible before allocation. */
     function preAllocationSanityCheck(context) {
-        const { targetOTPay, maxHours, hourlyRate, availableDays } = context;
+        const { targetOTPay, minHours, maxHours, hourlyRate, availableDays } = context;
 
-        if (targetOTPay === null || maxHours === null) {
-            return; // No check needed if targets aren't set
+        // Check if pay target is reachable within max hours
+        if (targetOTPay !== null && maxHours !== null) {
+            const daysByPayRate = [...availableDays].sort((a, b) => calculateOTPay(hourlyRate, 1, getDayType(b.date), b.date) - calculateOTPay(hourlyRate, 1, getDayType(a.date), a.date));
+            let maxPossiblePay = 0;
+            let hoursUsed = 0;
+            for (const day of daysByPayRate) {
+                const hoursToAdd = Math.min(CONFIG.MAX_DAILY_OT_HOURS, maxHours - hoursUsed);
+                if (hoursToAdd <= 0) break;
+                maxPossiblePay += calculateOTPay(hourlyRate, hoursToAdd, getDayType(day.date), day.date);
+                hoursUsed += hoursToAdd;
+            }
+            if (targetOTPay > maxPossiblePay) {
+                showToast(`Warning: Target pay may be unreachable. Max possible pay is approx. ${formatCurrency(maxPossiblePay)}.`, 'warning', 6000);
+            }
         }
-
-        // Simulate "Fastest Path" to find max possible pay within hour limit
-        const daysByPayRate = [...availableDays].sort((a, b) => {
-            const payA = calculateOTPay(hourlyRate, 1, getDayType(a.date), a.date);
-            const payB = calculateOTPay(hourlyRate, 1, getDayType(b.date), b.date);
-            return payB - payA;
-        });
-
-        let simulatedPay = 0;
-        let simulatedHours = 0;
-        for (const day of daysByPayRate) {
-            const remainingHoursAllowed = maxHours - simulatedHours;
-            if (remainingHoursAllowed <= 0) break;
-
-            const hoursToAdd = Math.min(CONFIG.MAX_DAILY_OT_HOURS, remainingHoursAllowed);
-            simulatedPay += calculateOTPay(hourlyRate, hoursToAdd, getDayType(day.date), day.date);
-            simulatedHours += hoursToAdd;
-        }
-
-        if (targetOTPay > simulatedPay) {
-            showToast(
-                `Warning: Your pay target of ${formatCurrency(targetOTPay)} may be unreachable. The maximum possible pay with your settings is approx. ${formatCurrency(simulatedPay)}.`,
-                'warning',
-                6000
-            );
+        
+        // [NEW] Check if min hours will force pay way over target
+        if (targetOTPay !== null && minHours !== null) {
+            const daysByPayRate = [...availableDays].sort((a, b) => calculateOTPay(hourlyRate, 1, getDayType(a.date), a.date) - calculateOTPay(hourlyRate, 1, getDayType(b.date), b.date));
+             let minPossiblePay = 0;
+             let hoursUsed = 0;
+             for(const day of daysByPayRate){
+                 const hoursToAdd = Math.min(CONFIG.MAX_DAILY_OT_HOURS, minHours - hoursUsed);
+                 if(hoursToAdd <= 0) break;
+                 minPossiblePay += calculateOTPay(hourlyRate, hoursToAdd, getDayType(day.date), day.date);
+                 hoursUsed += hoursToAdd;
+             }
+             if(minPossiblePay > targetOTPay * 1.25){ // If it's more than 25% over
+                 showToast(`Heads up: Your 'Min Hours' goal will likely result in pay much higher than your target.`, 'warning', 6000);
+             }
         }
     }
 
@@ -1826,7 +1276,7 @@
         }
     }
     
-    /** [NEW] Incrementally adds or removes 0.5 hours. */
+    /** [ENHANCED] Incrementally adds or removes 0.5 hours, respecting constraints. */
     function adjustHours(amount) {
         const basicSalary = parseFloat(DOMElements.basicSalaryInput.value);
         if (isNaN(basicSalary) || basicSalary <= 0) {
@@ -1834,8 +1284,15 @@
             return;
         }
         const hourlyRate = calculateHourlyRate(basicSalary);
+        const { minHours, maxHours } = getMinMaxHours();
+
+        let totalHours = otEntries.reduce((sum, entry) => sum + entry.hours, 0);
 
         if (amount > 0) { // Adding hours
+            if (maxHours !== null && totalHours + amount > maxHours) {
+                showToast(`Cannot add hours: Max hours limit of ${maxHours}h would be exceeded.`, 'warning');
+                return;
+            }
             const availableDays = getDateRangeArray(formatDate(mainDatePicker.selectedDates[0]), formatDate(mainDatePicker.selectedDates[1]))
                 .map(day => ({ ...day, payRate: calculateOTPay(hourlyRate, 1, getDayType(day.date), day.date) }))
                 .filter(day => {
@@ -1853,6 +1310,10 @@
                 return;
             }
         } else { // Reducing hours
+            if (minHours !== null && totalHours + amount < minHours) {
+                showToast(`Cannot reduce hours: Would fall below min hours limit of ${minHours}h.`, 'warning');
+                return;
+            }
             const entriesWithHours = otEntries
                 .filter(entry => entry.hours > 0)
                 .map(entry => ({ ...entry, payRate: calculateOTPay(hourlyRate, 1, entry.type, entry.date) }))
@@ -2345,7 +1806,6 @@
                     showToast('Failed to load data. Please try again.', 'error');
                 }
             } finally {
-                updateWorkloadPresetUI();
                 updateAllocationStrategyUI();
                 if (!isInitialLoad) toggleLoadingOverlay(false);
             }
@@ -2729,6 +2189,61 @@
         customOption.textContent = 'Other (Enter Manually)';
         selectElement.appendChild(customOption);
     }
+
+    /** [NEW] Calculate the min/max hours needed to reach a target pay. */
+    async function calculateSuggestedHoursForTarget(isWizard = false) {
+        const salaryInput = isWizard ? DOMElements.wizardModal.basicSalaryInput : DOMElements.basicSalaryInput;
+        const targetSelect = isWizard ? DOMElements.wizardModal.targetOTPaySelect : DOMElements.targetOTPaySelect;
+        const customTargetInput = isWizard ? DOMElements.wizardModal.customTargetOTPayInput : DOMElements.customTargetOTPayInput;
+        const datePicker = isWizard ? wizardDatePicker : mainDatePicker;
+
+        const salary = parseFloat(salaryInput.value);
+        let targetPay;
+        if (targetSelect.value === 'custom') {
+            targetPay = parseFloat(customTargetInput.value);
+        } else {
+            targetPay = parseFloat(targetSelect.value);
+        }
+
+        const selectedDates = datePicker.selectedDates;
+        if (isNaN(salary) || salary <= 0 || isNaN(targetPay) || targetPay <= 0 || selectedDates.length < 2) {
+            return null;
+        }
+
+        const hourlyRate = calculateHourlyRate(salary);
+        const startDateStr = formatDate(selectedDates[0]);
+        const endDateStr = formatDate(selectedDates[1]);
+        const dateRange = getDateRangeArray(startDateStr, endDateStr);
+        
+        const calculateHours = (isMin) => {
+            let pay = 0;
+            let hours = 0;
+            const sortedDays = [...dateRange].sort((a, b) => {
+                const payA = calculateOTPay(hourlyRate, 1, getDayType(a.date), a.date);
+                const payB = calculateOTPay(hourlyRate, 1, getDayType(b.date), b.date);
+                return isMin ? payB - payA : payA - payB; // Fastest path for min hours, cheapest for max
+            });
+
+            for (const day of sortedDays) {
+                if (pay >= targetPay) break;
+                const payRate = calculateOTPay(hourlyRate, 1, getDayType(day.date), day.date);
+                if (payRate <= 0) continue;
+                
+                let hoursForDay = 0;
+                while(hoursForDay < CONFIG.MAX_DAILY_OT_HOURS && pay < targetPay) {
+                    hoursForDay += 0.5;
+                    hours += 0.5;
+                    pay += calculateOTPay(hourlyRate, 0.5, getDayType(day.date), day.date);
+                }
+            }
+            return pay >= targetPay ? hours : null;
+        };
+
+        const minHours = calculateHours(true);
+        const maxHours = calculateHours(false);
+        
+        return { minHours, maxHours };
+    }
     
     // --- EVENT LISTENERS SETUP ---
     function setupEventListeners() {
@@ -2839,6 +2354,25 @@
         DOMElements.wizardModal.nextBtn.addEventListener('click', wizardNext);
         DOMElements.wizardModal.prevBtn.addEventListener('click', wizardPrev);
         DOMElements.wizardModal.finishBtn.addEventListener('click', wizardFinish);
+        
+        const wizardSuggestionHandler = debounce(async () => {
+            const suggestion = await calculateSuggestedHoursForTarget(true);
+             if (suggestion) {
+                if (suggestion.minHours !== null && suggestion.maxHours !== null) {
+                    DOMElements.wizardModal.suggestedHoursDisplay.textContent = `${suggestion.minHours.toFixed(1)}h - ${suggestion.maxHours.toFixed(1)}h`;
+                } else {
+                    DOMElements.wizardModal.suggestedHoursDisplay.textContent = 'Target unreachable.';
+                }
+                DOMElements.wizardModal.suggestedHoursContainer.classList.remove('hidden');
+            } else {
+                DOMElements.wizardModal.suggestedHoursContainer.classList.add('hidden');
+            }
+        }, 300);
+
+        DOMElements.wizardModal.basicSalaryInput.addEventListener('input', wizardSuggestionHandler);
+        DOMElements.wizardModal.targetOTPaySelect.addEventListener('change', wizardSuggestionHandler);
+        DOMElements.wizardModal.customTargetOTPayInput.addEventListener('input', wizardSuggestionHandler);
+        
         DOMElements.wizardModal.targetOTPaySelect.addEventListener('change', () => {
             if (DOMElements.wizardModal.targetOTPaySelect.value === 'custom') {
                 DOMElements.wizardModal.customTargetOTPayInput.classList.remove('hidden');
@@ -2852,6 +2386,7 @@
         });
         DOMElements.wizardModal.clearCustomTargetOTPayBtn.addEventListener('click', () => {
             DOMElements.wizardModal.customTargetOTPayInput.value = '';
+            wizardSuggestionHandler();
             showToast('Wizard custom target pay cleared.', 'info');
         });
     }
@@ -2886,7 +2421,24 @@
         wizardDatePicker = flatpickr(DOMElements.wizardModal.dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y-m-d',
-            defaultDate: [startOfMonth, endOfMonth]
+            defaultDate: [startOfMonth, endOfMonth],
+            onChange: () => {
+                 // Trigger suggestion update when wizard date changes
+                const wizardSuggestionHandler = debounce(async () => {
+                    const suggestion = await calculateSuggestedHoursForTarget(true);
+                     if (suggestion) {
+                        if (suggestion.minHours !== null && suggestion.maxHours !== null) {
+                            DOMElements.wizardModal.suggestedHoursDisplay.textContent = `${suggestion.minHours.toFixed(1)}h - ${suggestion.maxHours.toFixed(1)}h`;
+                        } else {
+                            DOMElements.wizardModal.suggestedHoursDisplay.textContent = 'Target unreachable.';
+                        }
+                        DOMElements.wizardModal.suggestedHoursContainer.classList.remove('hidden');
+                    } else {
+                        DOMElements.wizardModal.suggestedHoursContainer.classList.add('hidden');
+                    }
+                }, 300);
+                wizardSuggestionHandler();
+            }
         });
         flatpickr(DOMElements.publicHolidayDateInput, { dateFormat: 'Y-m-d' });
 
@@ -2914,8 +2466,4 @@
     }
 
     // --- START THE APP ---
-    document.addEventListener('DOMContentLoaded', runCalculatorApp);
-
-</script>
-</body>
-</html>
+    document.addEventListener('DOMContentLoaded', runCalculatorApp);</script></body></html>
